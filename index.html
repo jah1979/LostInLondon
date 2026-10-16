@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0a111c">
+  <meta name="description" content="Lost in London: a free London-only photo game. Guess where and when the picture was taken.">
+  <meta property="og:title" content="Lost in London — The London location guessing game">
+  <meta property="og:description" content="Guess the London location and the year from real photographs. Challenge your mates.">
+  <title>LOST IN LONDON — Guess the place and time</title>
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+  <link rel="preconnect" href="https://upload.wikimedia.org">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxZAfHdxM1A9hN/F9MCoYRw=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Lost in London home">
+        <span class="brand-symbol" aria-hidden="true">◎</span>
+        <span class="brand-wordmark"><strong>LOST<span>IN</span>LONDON</strong><small>GUESS WHERE. GUESS WHEN.</small></span>
+      </a>
+      <div class="header-right">
+        <span class="tag-city"><span class="live-dot"></span>LONDON ONLY</span>
+        <button id="header-share" class="icon-button header-share" type="button" title="Share this game" aria-label="Share game">↗ <span>SHARE</span></button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section id="welcome" class="welcome-wrap" aria-labelledby="welcome-title">
+        <div class="welcome-art" aria-hidden="true">
+          <div class="art-lines"></div>
+          <div class="art-ring ring-one"></div><div class="art-ring ring-two"></div><div class="art-ring ring-three"></div>
+          <div class="art-marker"><span>?</span></div>
+          <div class="art-coords">51° 30′ N<br>00° 07′ W</div>
+          <div class="art-cross">+</div>
+        </div>
+        <div class="welcome-body">
+          <div class="eyebrow"><span class="line"></span> A CITY-WIDE SPACE + TIME CHALLENGE</div>
+          <h1 id="welcome-title">WHERE IN LONDON? <em>WHEN IN TIME?</em></h1>
+          <p>Study a real photograph taken somewhere in London. Drop a pin on the map <strong>and guess the year it was taken</strong>. Get points for both. Five rounds to prove your London knowledge.</p>
+          <div class="settings">
+            <fieldset><legend>HUNTING GROUND</legend><div class="segmented" id="mode-select">
+              <button class="selected" data-mode="all" type="button">GREATER LONDON</button>
+              <button data-mode="central" type="button">INNER LONDON</button>
+            </div></fieldset>
+            <fieldset><legend>GUESSING MODE</legend><div class="segmented" id="game-type-select">
+              <button class="selected" data-type="both" type="button">WHERE + WHEN</button>
+              <button data-type="place" type="button">WHERE ONLY</button>
+            </div></fieldset>
+            <fieldset><legend>NUMBER OF ROUNDS</legend><div class="segmented" id="round-select">
+              <button class="selected" data-rounds="5" type="button">5 ROUNDS</button>
+              <button data-rounds="10" type="button">10 ROUNDS</button>
+            </div></fieldset>
+            <fieldset><legend>ROUND TIMER</legend><div class="segmented" id="timer-select">
+              <button class="selected" data-timer="0" type="button">NO LIMIT</button>
+              <button data-timer="90" type="button">90 SECONDS</button>
+            </div></fieldset>
+          </div>
+          <button id="start-game" class="button button-main" type="button">START EXPLORING <span>↗</span></button>
+          <p class="welcome-foot">FREE TO PLAY <span>✳</span> NO ACCOUNT REQUIRED <span>✳</span> BEST ON DESKTOP OR MOBILE</p>
+        </div>
+      </section>
+
+      <section id="game" class="game-view hidden" aria-label="Game board">
+        <div class="game-info">
+          <div class="section-name">CURRENT EXPLORATION <span id="round-label">01 / 05</span></div>
+          <div class="score-group"><span class="score-caption">TOTAL SCORE</span><b id="score-total">0</b><small>PTS</small></div>
+          <div class="timer-box" id="timer-box" hidden><span class="timer-glyph">◷</span><b id="timer-value">01:30</b></div>
+          <button class="subtle-button" id="restart-button" type="button" title="Start a new game">↻ NEW GAME</button>
+        </div>
+        <div class="play-grid">
+          <div class="photo-panel">
+            <div class="photo-stage" id="photo-stage">
+              <div class="photo-loading" id="photo-loading"><span class="loader-ring"></span><span>SEARCHING LONDON...</span><small>Finding a London photo with location and capture date</small></div>
+              <img id="location-photo" alt="A mystery location somewhere in London" draggable="false" hidden>
+              <div class="photo-error hidden" id="photo-error"><span>↻</span><strong>COULDN'T LOAD THAT CLUE</strong><button id="retry-photo" type="button" class="button button-outline">TRY ANOTHER LOCATION</button></div>
+              <div class="photo-overlay-top"><span class="photo-counter"><span class="pulse"></span> LONDON PHOTO CLUE</span><span id="zoom-indicator">100%</span></div>
+              <div class="photo-overlay-bottom"><div><strong>LOOK CLOSER.</strong><span> Find the clues. Date the scene.</span></div><div class="zoom-controls"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><button type="button" id="zoom-in" aria-label="Zoom in">+</button></div></div>
+            </div>
+            <div class="photo-credit" id="photo-credit">Photography: Wikimedia Commons contributors · <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">Source / credits ↗</a></div>
+          </div>
+          <div class="guess-panel">
+            <div class="panel-heading"><div><span class="panel-kicker">YOUR MOVE</span><h2>WHERE IN LONDON?</h2></div><div class="map-compass">N ↑</div></div>
+            <div class="map-holder"><div id="map" role="application" aria-label="Map of London: click to place your guess"></div><div class="map-hint" id="map-hint">↳ TAP THE MAP TO DROP YOUR GUESS</div></div>
+            <div class="year-guess" id="year-guess"><div class="year-topline"><div><span class="panel-kicker">TIME MACHINE</span><h3>WHEN WAS IT TAKEN?</h3></div><output id="year-number" for="year-slider">1988</output></div><input id="year-slider" type="range" min="1850" max="2026" value="1988" step="1" aria-label="Guess photograph year"><div class="year-scale"><span>1850</span><span>1900</span><span>1950</span><span>2000</span><span>2026</span></div></div>
+            <div class="guess-actions"><div class="selected-coords" id="selected-coords"><span class="pin-small">●</span> NO PIN PLACED YET</div><button id="submit-guess" class="button button-main guess-button" type="button" disabled>LOCK IN WHERE + WHEN <span>→</span></button></div>
+            <div class="panel-foot" id="panel-foot">Both answers count. Photo dates come from original image metadata.</div>
+          </div>
+        </div>
+        <div class="progress-track" id="progress-track" aria-label="Round progress"></div>
+      </section>
+
+      <section id="result" class="result-wrap hidden" aria-label="Round result">
+        <div class="result-content">
+          <div class="result-super">ROUND <span id="result-round">01</span> / RESULTS</div>
+          <div class="result-big"><div class="result-kicker">DISTANCE FROM TARGET</div><div class="result-distance" id="result-distance">1.2 <small>KM</small></div></div>
+          <h2 id="result-headline">Not bad, Londoner.</h2>
+          <p id="result-subtitle">You were pretty close to the right spot.</p>
+          <div class="result-score"><span>ROUND SCORE</span><b id="result-points">+3,860</b><small id="result-score-max">/ 10,000</small></div>
+          <div class="result-breakdown"><div><span>WHERE POINTS</span><strong id="result-place-points">0 / 5,000</strong></div><div id="result-time-breakdown"><span>WHEN POINTS</span><strong id="result-year-points">0 / 5,000</strong></div></div>
+          <div class="time-reveal" id="time-reveal"><span>THE DATE</span><strong id="correct-year">1984</strong><span id="year-delta">YOUR GUESS: 1990 · 6 YEARS OUT</span></div>
+          <div class="location-reveal"><span>THE ACTUAL LOCATION</span><h3 id="result-location">Camden Town</h3><p id="result-area">NORTH LONDON</p></div>
+          <button class="button button-main" id="next-round" type="button">NEXT LOCATION <span>→</span></button>
+        </div>
+        <div class="result-map-wrap"><div id="result-map" aria-label="Map showing your guess and the correct location"></div><div class="result-legend"><span><i class="legend-guess"></i> YOUR GUESS</span><span><i class="legend-actual"></i> ACTUAL LOCATION</span></div></div>
+      </section>
+
+      <section id="finished" class="finished-wrap hidden" aria-label="Game complete">
+        <div class="finish-detail"><div class="eyebrow"><span class="line"></span> EXPLORATION COMPLETE</div><div class="finish-symbol">◎</div><h1 id="finish-title">LONDON <em>LEGEND.</em></h1><p id="finish-desc">You've wandered all across the capital.</p><div class="final-score-label">YOUR FINAL SCORE</div><div class="final-score"><b id="final-points">21,800</b><span id="final-max">/ 25,000 PTS</span></div><p class="best-score" id="best-score"></p><div class="finish-actions"><button id="play-again" class="button button-main" type="button">PLAY AGAIN <span>↻</span></button><button id="share-result" class="button button-outline" type="button">SHARE YOUR SCORE ↗</button></div><div class="finish-note">CHALLENGE YOUR MATES. NO LOGIN, NO NONSENSE. EVERY PHOTO HAS A REAL DATE.</div></div>
+      </section>
+    </main>
+    <footer class="footer"><span>LOST IN LONDON <b>✳</b> A COMMUNITY CITY GAME</span><span>GEO-TAGGED PHOTOS + DATES: <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">WIKIMEDIA COMMONS</a> · MAP: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OPENSTREETMAP CONTRIBUTORS</a></span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
