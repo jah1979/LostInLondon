@@ -53,3 +53,7 @@ Then visit http://localhost:8000.
 ## Code and photo licences
 
 The game code in this folder is released under MIT (see `LICENSE`). Photographs are **not** distributed with the code: they are served directly from Commons and retain their own independent licences and attribution requirements. OpenStreetMap data and Leaflet have separate terms and copyright notices.
+
+## Deployment check
+
+This static site is published with GitHub Pages from the root of the `main` branch.
