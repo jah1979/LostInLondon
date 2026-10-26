@@ -66,3 +66,25 @@
   .guess-panel {min-height:590px}
   .photo-credit {max-height:none}
 }
+
+/* v0.4 — Reset is an HTML overlay, never a Leaflet control. */
+.map-holder {isolation:isolate}
+.map-holder .reset-london-button {
+  position:absolute;right:12px;top:12px;z-index:1000;
+  display:flex;align-items:center;gap:7px;justify-content:center;
+  background:#152338;color:#f6fbf2;border:2px solid #b8f05a;
+  border-radius:7px;padding:10px 12px;min-height:43px;
+  font:800 11px/1.1 'DM Sans',Arial,sans-serif;
+  letter-spacing:.65px;box-shadow:0 3px 12px #0008;
+  cursor:pointer;touch-action:manipulation;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.map-holder .reset-london-button span {font-size:21px;line-height:15px;color:#b8f05a}
+.map-holder .reset-london-button:active {background:#29405a}
+.map-holder .reset-london-button:focus-visible {outline:3px solid #fff;outline-offset:2px}
+.map-holder .leaflet-container {height:100%;width:100%;background:#dce4e2}
+.map-holder .leaflet-control-container .leaflet-top {z-index:700}
+@media(max-width:760px) {
+  .map-holder .reset-london-button {right:8px;top:8px;padding:8px 10px;font-size:10px;min-height:40px}
+  .map-holder .reset-london-button span {font-size:20px}
+}
