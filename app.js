@@ -52,6 +52,7 @@
   let map = null, resultMap = null, guessMarker = null, loading = false;
   let yearValue = 1988, timerInterval = null, deadline = 0, runToken = 0;
   let sceneReady = false, answered = false, available = [], usedPhotos = new Set(), usedSeeds = new Set();
+  let prefetchedPhoto = null, prefetchPromise = null;
 
   const userPhoto = $('location-photo');
   const yearSlider = $('year-slider');
@@ -183,20 +184,40 @@
     };
   }
 
+
+  // Commons recommends avoiding large batches of expensive extmetadata.
+  // First search only filenames/coordinates, then request image information
+  // for a small randomized shortlist. This greatly reduces API work.
   async function fetchFromCommons(seed, signal) {
-    const qs = new URLSearchParams({
-      action:'query', format:'json', formatversion:'2', origin:'*',
-      generator:'geosearch', ggscoord:seed.lat+'|'+seed.lon,
+    const base = {action:'query',format:'json',formatversion:'2',origin:'*'};
+    const geoQuery = new URLSearchParams({
+      ...base, generator:'geosearch', ggscoord:seed.lat+'|'+seed.lon,
       ggsradius:settings.area === 'central' ? '4300' : '6000',
-      ggsnamespace:'6', ggsprimary:'all', ggslimit:'100',
-      prop:'coordinates|imageinfo', coprop:'type|globe',
-      iiprop:'url|size|mime|extmetadata|metadata', iiurlwidth:'1400'
+      ggsnamespace:'6', ggsprimary:'all', ggslimit:'65',
+      prop:'coordinates', coprop:'type|globe'
     });
-    const response = await fetch(API+'?'+qs, {signal, mode:'cors'});
-    if (!response.ok) throw new Error('Commons HTTP '+response.status);
+    const listResponse = await fetch(API+'?'+geoQuery, {signal, mode:'cors'});
+    if (!listResponse.ok) throw new Error('Commons geosearch HTTP '+listResponse.status);
+    const listPayload = await listResponse.json();
+    if (listPayload.error) throw new Error(listPayload.error.info||'Commons geosearch error');
+    const shortlist = shuffle((listPayload.query?.pages||[])
+      .filter(page => page.ns === 6 && !IGNORED_TITLES.test(page.title) &&
+        !usedPhotos.has(page.pageid) && page.coordinates?.some(p =>
+          Number.isFinite(p.lat) && Number.isFinite(p.lon) && inPlayArea(p.lat,p.lon))))
+      .slice(0,16);
+    if (!shortlist.length) return [];
+
+    const detailQuery = new URLSearchParams({
+      ...base, pageids:shortlist.map(p=>p.pageid).join('|'),
+      prop:'coordinates|imageinfo', coprop:'type|globe',
+      iiprop:'url|size|mime|extmetadata', iiurlwidth:'1200',
+      iiextmetadatafilter:'Artist|DateTimeOriginal|LicenseShortName|LicenseUrl'
+    });
+    const response = await fetch(API+'?'+detailQuery, {signal, mode:'cors'});
+    if (!response.ok) throw new Error('Commons photo details HTTP '+response.status);
     const payload = await response.json();
-    if (payload.error) throw new Error(payload.error.info || 'Commons returned an error');
-    return (payload.query?.pages || []).map(readCommonsPage).filter(Boolean);
+    if (payload.error) throw new Error(payload.error.info||'Commons photo details error');
+    return shuffle((payload.query?.pages||[]).map(readCommonsPage).filter(Boolean));
   }
 
   async function findCandidate(token) {
@@ -232,14 +253,55 @@
     return null;
   }
 
+
   function imageLoads(src, token) {
     return new Promise(resolve => {
       const image = new Image();
-      const timeout = setTimeout(() => resolve(false), 15000);
-      image.onload = () => { clearTimeout(timeout); resolve(token === runToken); };
-      image.onerror = () => { clearTimeout(timeout); resolve(false); };
+      let finished = false;
+      const finish = success => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        image.onload = null;
+        image.onerror = null;
+        resolve(success && token === runToken);
+      };
+      const timeout = setTimeout(() => finish(false), 9000);
+      image.onload = () => finish(true);
+      image.onerror = () => finish(false);
       image.src = src;
     });
+  }
+
+  async function getReadyPhoto(token) {
+    for (let attempt=0; attempt<7; attempt++) {
+      if (token !== runToken) return null;
+      const candidate = await findCandidate(token);
+      if (token !== runToken) return null;
+      if (!candidate) return null;
+      if (await imageLoads(candidate.url, token)) return candidate;
+    }
+    return null;
+  }
+
+  // Preload just one next photo while the user is thinking, not a whole
+  // gallery of images. Keep the promise for early "Next round" clicks.
+  function prefetchNextRound() {
+    if (prefetchPromise || prefetchedPhoto || !sceneReady ||
+        roundIndex + 1 >= settings.rounds) return;
+    const token = runToken;
+    prefetchPromise = getReadyPhoto(token)
+      .then(candidate => {
+        if (token === runToken) prefetchedPhoto = candidate;
+        return candidate;
+      })
+      .catch(error => {
+        console.warn('Next-round prefetch failed:', error);
+        return null;
+      })
+      .finally(() => {
+        if (token === runToken) prefetchPromise = null;
+      });
   }
 
   async function loadRoundPhoto() {
@@ -250,12 +312,19 @@
     $('photo-error').classList.add('hidden');
     userPhoto.hidden = true;
     $('submit-guess').disabled = true;
-    for (let attempt=0; attempt < 10; attempt++) {
-      const candidate = await findCandidate(token);
+
+    let candidate = prefetchedPhoto;
+    prefetchedPhoto = null;
+    if (!candidate && prefetchPromise) {
+      candidate = await prefetchPromise;
       if (token !== runToken) return;
-      if (!candidate) break;
-      if (!(await imageLoads(candidate.url, token))) continue;
+      prefetchedPhoto = null;
+    }
+    if (!candidate) {
+      candidate = await getReadyPhoto(token);
       if (token !== runToken) return;
+    }
+    if (candidate) {
       photo = candidate;
       userPhoto.src = candidate.url;
       userPhoto.hidden = false;
@@ -265,14 +334,17 @@
       loading = false;
       $('submit-guess').disabled = !guess;
       startTimer();
+      // Defer a little so the current image can paint before networking.
+      setTimeout(() => {
+        if (token === runToken && sceneReady && !answered) prefetchNextRound();
+      }, 650);
       return;
     }
-    if (token !== runToken) return;
     loading = false;
     $('photo-loading').classList.add('hidden');
     $('photo-error').classList.remove('hidden');
     $('photo-error').querySelector('strong').textContent = 'NO SUITABLE PHOTO COULD BE LOADED';
-    $('panel-foot').textContent = 'Check your internet connection and try another location.';
+    $('panel-foot').textContent = 'Commons did not respond with a suitable photo. Try another location.';
   }
 
   function updateCredit(candidate) {
@@ -468,7 +540,6 @@
     initMap();
     // Start each round in a new area; retain the current seed's candidates
     // only when the player retries an unreadable picture.
-    if (roundIndex > 0) available = [];
     setTimeout(syncGuessMapSize, 100);
     loadRoundPhoto();
   }
@@ -480,6 +551,8 @@
     points = 0;
     answered = false;
     available = [];
+    prefetchedPhoto = null;
+    prefetchPromise = null;
     usedSeeds = new Set();
     usedPhotos = new Set();
     renderRound();
