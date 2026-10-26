@@ -422,6 +422,12 @@
     return install(0);
   }
 
+  // Enable wheel/trackpad zoom only on desktop-like pointer devices.
+  // Mobile users retain the normal pinch-to-zoom interaction.
+  function hasDesktopPointer() {
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
   function londonStartZoom() {
     // On small screens this shows more of Greater London at once.
     return window.matchMedia('(max-width: 760px)').matches ? 9 : 10;
@@ -452,7 +458,8 @@
     }
     map = L.map('map', {
       center:LONDON_CENTER, zoom:londonStartZoom(),
-      minZoom:8, maxZoom:18, scrollWheelZoom:false,
+      minZoom:8, maxZoom:18, scrollWheelZoom:hasDesktopPointer(),
+      wheelPxPerZoomLevel:120, wheelDebounceTime:70,
       zoomSnap:1, zoomDelta:1, inertia:false, tapTolerance:18
     });
     addReliableTiles(map, true);
@@ -563,7 +570,9 @@
   function showResultMap() {
     if (!window.L || !guess && !photo) return;
     if (!resultMap) {
-      resultMap = L.map('result-map',{scrollWheelZoom:false});
+      resultMap = L.map('result-map',{
+        scrollWheelZoom:hasDesktopPointer(), wheelPxPerZoomLevel:120, wheelDebounceTime:70
+      });
       addReliableTiles(resultMap);
     }
     resultMap.eachLayer(layer => {if (!(layer instanceof L.TileLayer)) resultMap.removeLayer(layer);});
