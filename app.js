@@ -378,35 +378,42 @@
   // Use one provider at a time. If its tiles fail, switch once to a separate
   // free, attributed community basemap rather than leaving a checkerboard.
   // Both providers are best-effort; no automated prefetch or cache busting.
+
+  // Community basemaps with clear attribution. OSM France HOT is first,
+  // so this small, non-commercial game does not depend on OSMF's volunteer
+  // standard tiles as its primary source.
   function addReliableTiles(targetMap, isGuessMap=false) {
     const sources = [
-      {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'},
-      {url:'https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · tiles: <a href="https://www.openstreetmap.fr/">OSM France / HOT</a>'}
+      {
+        url:'https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · <a href="https://www.openstreetmap.fr/">OSM France / HOT</a>'
+      },
+      {
+        url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+      }
     ];
-    let provider = 0;
+    let activeSource = 0;
     function install(index) {
-      let failures = 0;
+      let errors = 0;
       const layer = L.tileLayer(sources[index].url, {
-        maxZoom:19, keepBuffer:2, updateWhenIdle:true,
-        attribution:sources[index].attribution
+        maxZoom:19, keepBuffer:1, updateWhenIdle:true,
+        attribution:sources[index].attribution,
+        referrerPolicy:'strict-origin-when-cross-origin'
       });
       layer.on('tileerror', () => {
-        failures++;
-        if (failures >= 2 && provider === 0 && index === 0) {
-          provider = 1;
+        errors++;
+        if (errors >= 3 && index === 0 && activeSource === 0) {
+          activeSource = 1;
           targetMap.removeLayer(layer);
-          if (isGuessMap && !guess) $('map-hint').textContent = 'LOADING BACKUP MAP…';
+          if (isGuessMap && !guess) $('map-hint').textContent = 'TRYING BACKUP MAP…';
           install(1);
-        } else if (failures >= 3 && index === 1 && isGuessMap) {
-          if (!guess) $('map-hint').textContent = 'MAP TILES UNAVAILABLE · CHECK CONNECTION';
+        } else if (errors >= 3 && index === 1 && isGuessMap && !guess) {
+          $('map-hint').textContent = 'MAP TILES NOT AVAILABLE · TRY AGAIN LATER';
         }
       });
       layer.on('load', () => {
-        if (isGuessMap && !guess && sceneReady) {
-          $('map-hint').textContent = '↳ TAP THE MAP TO DROP YOUR GUESS';
-        }
+        if (isGuessMap && !guess) $('map-hint').textContent = '↳ TAP THE MAP TO DROP YOUR GUESS';
       });
       layer.addTo(targetMap);
       targetMap._lostInLondonTileLayer = layer;
@@ -415,58 +422,40 @@
     return install(0);
   }
 
-  // A map viewport wider than maxBounds causes the elastic snap-back seen on
-  // small phones. Recalculate minZoom so the entire viewport stays in London.
+  function londonStartZoom() {
+    // On small screens this shows more of Greater London at once.
+    return window.matchMedia('(max-width: 760px)').matches ? 9 : 10;
+  }
+
   function syncGuessMapSize() {
     if (!map) return;
     map.invalidateSize({pan:false, animate:false});
-    const minimum = Math.max(9, Math.ceil(map.getBoundsZoom(LONDON_MAP_BOUNDS, true)));
-    map.setMinZoom(minimum);
-    if (map.getZoom() < minimum) map.setZoom(minimum, {animate:false});
-    map.panInsideBounds(LONDON_MAP_BOUNDS, {animate:false});
+  }
+
+  function resetGuessMap() {
+    if (!map) return;
+    // Deliberately avoid maxBounds and panInsideBounds: their snapback was
+    // pulling the map around on phones, particularly during a resize.
+    map.stop();
+    syncGuessMapSize();
+    map.setView(LONDON_CENTER, londonStartZoom(), {animate:false});
   }
 
   function initMap() {
     if (map) {
-      // Preserve an existing map without permitting an invalidateSize pan.
-      setTimeout(syncGuessMapSize, 60);
+      setTimeout(resetGuessMap, 70);
       return;
     }
     if (!window.L) {
-      $('map-hint').textContent = 'MAP FAILED TO LOAD — REFRESH TO RETRY';
+      $('map-hint').textContent = 'MAP LIBRARY FAILED TO LOAD — REFRESH TO RETRY';
       return;
     }
     map = L.map('map', {
-      scrollWheelZoom:false, zoomSnap:1, zoomDelta:1,
-      maxBounds:LONDON_MAP_BOUNDS, maxBoundsViscosity:1,
-      inertia:false, minZoom:9, tapTolerance:18
+      center:LONDON_CENTER, zoom:londonStartZoom(),
+      minZoom:8, maxZoom:18, scrollWheelZoom:false,
+      zoomSnap:1, zoomDelta:1, inertia:false, tapTolerance:18
     });
     addReliableTiles(map, true);
-    const minZoom = Math.max(9, Math.ceil(map.getBoundsZoom(LONDON_MAP_BOUNDS, true)));
-    map.setMinZoom(minZoom);
-    map.setView(LONDON_CENTER, Math.max(10,minZoom), {animate:false});
-
-    // Explicit map reset for mobile users; does not clear the chosen pin.
-    const resetControl = L.control({position:'topleft'});
-    resetControl.onAdd = () => {
-      const wrap = L.DomUtil.create('div','leaflet-bar leaflet-control');
-      const button = L.DomUtil.create('a','map-reset',wrap);
-      button.href = '#';
-      button.setAttribute('role','button');
-      button.setAttribute('aria-label','Reset map view to London');
-      button.title = 'Reset view to London';
-      button.textContent = '⌖';
-      L.DomEvent.disableClickPropagation(wrap);
-      L.DomEvent.on(button,'click',event => {
-        L.DomEvent.stop(event);
-        syncGuessMapSize();
-        map.stop();
-        map.setView(LONDON_CENTER, Math.max(10,map.getMinZoom()), {animate:false});
-        map._lostInLondonTileLayer?.redraw();
-      });
-      return wrap;
-    };
-    resetControl.addTo(map);
     map.on('click', evt => {
       if (!sceneReady || answered) return;
       guess = [evt.latlng.lat,evt.latlng.lng];
@@ -476,8 +465,15 @@
       $('map-hint').textContent = 'PIN PLACED — READY TO LOCK IN';
       $('submit-guess').disabled = false;
     });
-    setTimeout(syncGuessMapSize, 100);
+    // The reset button lives OUTSIDE Leaflet's control container, so it
+    // remains visible even if the library styling is unavailable.
+    window.addEventListener('resize', () => {
+      if (!$('game').classList.contains('hidden')) syncGuessMapSize();
+    });
+    setTimeout(resetGuessMap, 90);
   }
+
+  $('reset-map').addEventListener('click', resetGuessMap);
 
   function renderProgress() {
     $('progress-track').replaceChildren();
@@ -538,9 +534,8 @@
     if (guessMarker && map) map.removeLayer(guessMarker);
     guessMarker = null;
     initMap();
-    // Start each round in a new area; retain the current seed's candidates
-    // only when the player retries an unreadable picture.
-    setTimeout(syncGuessMapSize, 100);
+    // Start every round back over London, regardless of the previous pan/zoom.
+    setTimeout(resetGuessMap, 110);
     loadRoundPhoto();
   }
 
