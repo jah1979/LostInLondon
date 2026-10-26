@@ -302,18 +302,99 @@
     });
   }
 
+
+  // Use one provider at a time. If its tiles fail, switch once to a separate
+  // free, attributed community basemap rather than leaving a checkerboard.
+  // Both providers are best-effort; no automated prefetch or cache busting.
+  function addReliableTiles(targetMap, isGuessMap=false) {
+    const sources = [
+      {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'},
+      {url:'https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · tiles: <a href="https://www.openstreetmap.fr/">OSM France / HOT</a>'}
+    ];
+    let provider = 0;
+    function install(index) {
+      let failures = 0;
+      const layer = L.tileLayer(sources[index].url, {
+        maxZoom:19, keepBuffer:2, updateWhenIdle:true,
+        attribution:sources[index].attribution
+      });
+      layer.on('tileerror', () => {
+        failures++;
+        if (failures >= 2 && provider === 0 && index === 0) {
+          provider = 1;
+          targetMap.removeLayer(layer);
+          if (isGuessMap && !guess) $('map-hint').textContent = 'LOADING BACKUP MAP…';
+          install(1);
+        } else if (failures >= 3 && index === 1 && isGuessMap) {
+          if (!guess) $('map-hint').textContent = 'MAP TILES UNAVAILABLE · CHECK CONNECTION';
+        }
+      });
+      layer.on('load', () => {
+        if (isGuessMap && !guess && sceneReady) {
+          $('map-hint').textContent = '↳ TAP THE MAP TO DROP YOUR GUESS';
+        }
+      });
+      layer.addTo(targetMap);
+      targetMap._lostInLondonTileLayer = layer;
+      return layer;
+    }
+    return install(0);
+  }
+
+  // A map viewport wider than maxBounds causes the elastic snap-back seen on
+  // small phones. Recalculate minZoom so the entire viewport stays in London.
+  function syncGuessMapSize() {
+    if (!map) return;
+    map.invalidateSize({pan:false, animate:false});
+    const minimum = Math.max(9, Math.ceil(map.getBoundsZoom(LONDON_MAP_BOUNDS, true)));
+    map.setMinZoom(minimum);
+    if (map.getZoom() < minimum) map.setZoom(minimum, {animate:false});
+    map.panInsideBounds(LONDON_MAP_BOUNDS, {animate:false});
+  }
+
   function initMap() {
-    if (map) { setTimeout(() => map.invalidateSize(), 20); return; }
+    if (map) {
+      // Preserve an existing map without permitting an invalidateSize pan.
+      setTimeout(syncGuessMapSize, 60);
+      return;
+    }
     if (!window.L) {
       $('map-hint').textContent = 'MAP FAILED TO LOAD — REFRESH TO RETRY';
       return;
     }
-    map = L.map('map', {scrollWheelZoom:false, zoomSnap:0.5, maxBounds:LONDON_MAP_BOUNDS,
-      maxBoundsViscosity:0.75, minZoom:9});
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    map.fitBounds([[51.29,-0.48],[51.68,0.29]]);
+    map = L.map('map', {
+      scrollWheelZoom:false, zoomSnap:1, zoomDelta:1,
+      maxBounds:LONDON_MAP_BOUNDS, maxBoundsViscosity:1,
+      inertia:false, minZoom:9, tapTolerance:18
+    });
+    addReliableTiles(map, true);
+    const minZoom = Math.max(9, Math.ceil(map.getBoundsZoom(LONDON_MAP_BOUNDS, true)));
+    map.setMinZoom(minZoom);
+    map.setView(LONDON_CENTER, Math.max(10,minZoom), {animate:false});
+
+    // Explicit map reset for mobile users; does not clear the chosen pin.
+    const resetControl = L.control({position:'topleft'});
+    resetControl.onAdd = () => {
+      const wrap = L.DomUtil.create('div','leaflet-bar leaflet-control');
+      const button = L.DomUtil.create('a','map-reset',wrap);
+      button.href = '#';
+      button.setAttribute('role','button');
+      button.setAttribute('aria-label','Reset map view to London');
+      button.title = 'Reset view to London';
+      button.textContent = '⌖';
+      L.DomEvent.disableClickPropagation(wrap);
+      L.DomEvent.on(button,'click',event => {
+        L.DomEvent.stop(event);
+        syncGuessMapSize();
+        map.stop();
+        map.setView(LONDON_CENTER, Math.max(10,map.getMinZoom()), {animate:false});
+        map._lostInLondonTileLayer?.redraw();
+      });
+      return wrap;
+    };
+    resetControl.addTo(map);
     map.on('click', evt => {
       if (!sceneReady || answered) return;
       guess = [evt.latlng.lat,evt.latlng.lng];
@@ -323,6 +404,7 @@
       $('map-hint').textContent = 'PIN PLACED — READY TO LOCK IN';
       $('submit-guess').disabled = false;
     });
+    setTimeout(syncGuessMapSize, 100);
   }
 
   function renderProgress() {
@@ -387,7 +469,7 @@
     // Start each round in a new area; retain the current seed's candidates
     // only when the player retries an unreadable picture.
     if (roundIndex > 0) available = [];
-    setTimeout(() => map?.invalidateSize(), 100);
+    setTimeout(syncGuessMapSize, 100);
     loadRoundPhoto();
   }
 
@@ -414,9 +496,7 @@
     if (!window.L || !guess && !photo) return;
     if (!resultMap) {
       resultMap = L.map('result-map',{scrollWheelZoom:false});
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(resultMap);
+      addReliableTiles(resultMap);
     }
     resultMap.eachLayer(layer => {if (!(layer instanceof L.TileLayer)) resultMap.removeLayer(layer);});
     const target=[photo.lat,photo.lon];
@@ -426,7 +506,7 @@
       L.polyline([guess,target],{color:'#d5eeff',weight:3,dashArray:'7,7',opacity:0.8}).addTo(resultMap);
     }
     setTimeout(() => {
-      resultMap.invalidateSize();
+      resultMap.invalidateSize({pan:false,animate:false});
       if (guess) {
         const b = L.latLngBounds([guess,target]).pad(0.45);
         resultMap.fitBounds(b,{padding:[44,44],maxZoom:14});
