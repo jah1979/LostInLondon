@@ -50,7 +50,7 @@
   const settings = {area:'all', type:'both', rounds:5, timer:0};
   let roundIndex = 0, points = 0, photo = null, guess = null;
   let map = null, resultMap = null, guessMarker = null, loading = false;
-  let yearValue = 1988, timerInterval = null, deadline = 0, runToken = 0;
+  let yearValue = MAX_YEAR, timerInterval = null, deadline = 0, runToken = 0;
   let sceneReady = false, answered = false, available = [], usedPhotos = new Set(), usedSeeds = new Set();
   let prefetchedPhoto = null, prefetchPromise = null;
 
@@ -98,14 +98,15 @@
   segment('timer-select', 'timer', 'timer');
 
   yearSlider.max = String(MAX_YEAR);
+  $('year-max-label').textContent = String(MAX_YEAR);
   function updateYear(value) {
-    yearValue = clamp(Math.round(Number(value) || 1988), MIN_YEAR, MAX_YEAR);
+    yearValue = clamp(Math.round(Number(value) || MAX_YEAR), MIN_YEAR, MAX_YEAR);
     yearSlider.value = String(yearValue);
     $('year-number').textContent = String(yearValue);
     $('year-guess').style.setProperty('--year-pct', ((yearValue - MIN_YEAR) / (MAX_YEAR - MIN_YEAR) * 100) + '%');
   }
   yearSlider.addEventListener('input', () => updateYear(yearSlider.value));
-  updateYear(1988);
+  updateYear(MAX_YEAR);
 
   function haversine(lat1, lon1, lat2, lon2) {
     const rads = Math.PI / 180, radius = 6371.009;
@@ -533,7 +534,7 @@
     $('year-guess').classList.toggle('hidden', settings.type !== 'both');
     $('submit-guess').innerHTML = settings.type === 'both' ? 'LOCK IN WHERE + WHEN <span>→</span>' : 'LOCK IN LOCATION <span>→</span>';
     $('panel-foot').textContent = settings.type === 'both' ? 'The year is checked against the original photo date.' : 'Zoom in for a more precise location guess.';
-    updateYear(1988);
+    updateYear(MAX_YEAR);
     resetPhotoZoom();
     renderProgress();
     stopTimer();
