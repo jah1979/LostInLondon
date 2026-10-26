@@ -13,3 +13,9 @@
 .result-breakdown{display:flex;gap:14px;margin:-11px 0 19px}.result-breakdown>div{min-width:0;flex:1;background:#142438;border:1px solid #27384c;border-radius:4px;padding:10px 12px}.result-breakdown span,.time-reveal>span{display:block;font-size:10px;font-weight:800;color:#91a6b4;letter-spacing:1.2px}.result-breakdown strong{display:block;color:var(--text);font-size:16px;margin-top:7px}
 .time-reveal{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-left:3px solid var(--accent);padding:10px 0 10px 15px;margin:0 0 18px;background:linear-gradient(90deg,#213b2938,transparent)}.time-reveal strong{font:900 45px/1 'Barlow Condensed',Impact,sans-serif;color:var(--accent)}.time-reveal>span:last-child{flex-basis:100%;letter-spacing:.7px}
 @media(max-width:760px){.year-guess{padding:11px 12px;margin:9px 13px 0}.year-topline h3{font-size:20px}.year-topline output{font-size:30px}.result-breakdown{margin-top:-4px}.result-breakdown strong{font-size:13px}.time-reveal strong{font-size:38px}.guess-panel{min-height:535px}.year-scale{font-size:9px}}
+/* Mobile map stability and recovery controls. */
+.map-holder .leaflet-container{touch-action:none;overscroll-behavior:contain;background:#dce4e2}
+.map-holder .leaflet-tile{max-width:none!important;max-height:none!important}
+.map-holder .leaflet-control-attribution{max-width:100%;white-space:normal;font-size:9px!important}
+.map-reset{font-family:Arial,sans-serif!important;font-size:25px!important;line-height:28px!important;font-weight:700!important;color:#253644!important;user-select:none}
+.map-reset:focus-visible{outline:3px solid #b8f05a;outline-offset:2px}
