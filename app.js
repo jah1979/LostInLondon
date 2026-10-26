@@ -14,6 +14,8 @@
   const MAX_YEAR = new Date().getFullYear();
   const MIN_YEAR = 1850;
   const API = 'https://commons.wikimedia.org/w/api.php';
+  const PHOTO_HISTORY_KEY = 'lost-in-london:recent-photos:v1';
+  const PHOTO_HISTORY_LIMIT = 150;
   const LONDON_MAP_BOUNDS = [[51.25, -0.62], [51.74, 0.42]];
   const SEEDS = [
     {name:'Westminster',lat:51.5021,lon:-0.1261},
@@ -53,6 +55,8 @@
   let yearValue = MAX_YEAR, timerInterval = null, deadline = 0, runToken = 0;
   let sceneReady = false, answered = false, available = [], usedPhotos = new Set(), usedSeeds = new Set();
   let prefetchedPhoto = null, prefetchPromise = null;
+  // Kept across games; persisted on this browser when storage is available.
+  let recentPhotos = readPhotoHistory();
 
   const userPhoto = $('location-photo');
   const yearSlider = $('year-slider');
@@ -68,6 +72,54 @@
     }
     return a;
   };
+
+
+  function readPhotoHistory() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PHOTO_HISTORY_KEY) || '[]');
+      return Array.isArray(saved) ? saved.filter(p =>
+        Number.isInteger(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lon)
+      ).slice(0, PHOTO_HISTORY_LIMIT) : [];
+    } catch {
+      return []; // Private browsing / storage blocked: gameplay still works.
+    }
+  }
+
+  function hasSeenPhoto(id) {
+    return recentPhotos.some(p => p.id === id);
+  }
+
+  function nearRecentPhoto(lat, lon) {
+    // Only check the last 8 actual locations. Blocking hundreds of London
+    // streets would eventually exhaust the available dated photo supply.
+    const minimumKm = settings.area === 'central' ? 0.35 : 0.6;
+    return recentPhotos.slice(0, 8).some(p =>
+      haversine(lat, lon, p.lat, p.lon) < minimumKm
+    );
+  }
+
+  function rememberDisplayedPhoto(candidate) {
+    recentPhotos = [
+      {id:candidate.id, lat:candidate.lat, lon:candidate.lon},
+      ...recentPhotos.filter(p => p.id !== candidate.id)
+    ].slice(0, PHOTO_HISTORY_LIMIT);
+    try {
+      localStorage.setItem(PHOTO_HISTORY_KEY, JSON.stringify(recentPhotos));
+    } catch {
+      // Still retain the in-memory history for this browser session.
+    }
+  }
+
+  function jitteredSeed(seed) {
+    // Commons geosearch returns the nearest results in a fixed order.
+    // A small random shift changes which photos are discovered.
+    const distanceKm = 0.6 + Math.random() * (settings.area === 'central' ? 1.1 : 2.8);
+    const angle = Math.random() * Math.PI * 2;
+    const lat = seed.lat + Math.cos(angle) * distanceKm / 111.2;
+    const lon = seed.lon + Math.sin(angle) * distanceKm /
+      (111.2 * Math.cos(seed.lat * Math.PI / 180));
+    return inPlayArea(lat, lon) ? {lat,lon} : seed;
+  }
 
   function setView(id) {
     ['welcome','game','result','finished'].forEach(k => $(k).classList.toggle('hidden', k !== id));
@@ -191,21 +243,30 @@
   // for a small randomized shortlist. This greatly reduces API work.
   async function fetchFromCommons(seed, signal) {
     const base = {action:'query',format:'json',formatversion:'2',origin:'*'};
+    const searchPoint = jitteredSeed(seed);
     const geoQuery = new URLSearchParams({
-      ...base, generator:'geosearch', ggscoord:seed.lat+'|'+seed.lon,
+      ...base, generator:'geosearch',
+      ggscoord:searchPoint.lat+'|'+searchPoint.lon,
       ggsradius:settings.area === 'central' ? '4300' : '6000',
-      ggsnamespace:'6', ggsprimary:'all', ggslimit:'65',
+      ggsnamespace:'6', ggsprimary:'all', ggslimit:'100',
       prop:'coordinates', coprop:'type|globe'
     });
     const listResponse = await fetch(API+'?'+geoQuery, {signal, mode:'cors'});
     if (!listResponse.ok) throw new Error('Commons geosearch HTTP '+listResponse.status);
     const listPayload = await listResponse.json();
     if (listPayload.error) throw new Error(listPayload.error.info||'Commons geosearch error');
-    const shortlist = shuffle((listPayload.query?.pages||[])
+    const pages = shuffle((listPayload.query?.pages||[])
       .filter(page => page.ns === 6 && !IGNORED_TITLES.test(page.title) &&
-        !usedPhotos.has(page.pageid) && page.coordinates?.some(p =>
-          Number.isFinite(p.lat) && Number.isFinite(p.lon) && inPlayArea(p.lat,p.lon))))
-      .slice(0,16);
+        !usedPhotos.has(page.pageid) && !hasSeenPhoto(page.pageid) &&
+        page.coordinates?.some(p =>
+          Number.isFinite(p.lat) && Number.isFinite(p.lon) && inPlayArea(p.lat,p.lon))));
+    // Prefer genuinely different streets, but if this area has only a few
+    // geotagged files don't fail the round merely due to proximity.
+    const farther = pages.filter(page => page.coordinates?.some(p =>
+      Number.isFinite(p.lat) && Number.isFinite(p.lon) &&
+      !nearRecentPhoto(p.lat,p.lon)));
+    const nearby = pages.filter(page => !farther.includes(page));
+    const shortlist = [...farther, ...nearby].slice(0,16);
     if (!shortlist.length) return [];
 
     const detailQuery = new URLSearchParams({
@@ -231,7 +292,12 @@
           settings.area === 'all' || haversine(s.lat,s.lon,...LONDON_CENTER) < 6.5);
         let remaining = possibleSeeds.filter(s => !usedSeeds.has(s.name));
         if (!remaining.length) { usedSeeds.clear(); remaining = possibleSeeds; }
-        const seed = randomItem(remaining);
+        // Avoid returning to the same district on consecutive rounds.
+        const previous = recentPhotos[0];
+        const farAway = previous ? remaining.filter(s =>
+          haversine(s.lat,s.lon,previous.lat,previous.lon) >=
+          (settings.area === 'central' ? 1.6 : 4.0)) : [];
+        const seed = randomItem(farAway.length ? farAway : remaining);
         usedSeeds.add(seed.name);
         try {
           const controller = new AbortController();
@@ -245,7 +311,7 @@
       }
       while (available.length) {
         const candidate = available.pop();
-        if (!usedPhotos.has(candidate.id)) {
+        if (!usedPhotos.has(candidate.id) && !hasSeenPhoto(candidate.id)) {
           usedPhotos.add(candidate.id);
           return candidate;
         }
@@ -327,6 +393,10 @@
     }
     if (candidate) {
       photo = candidate;
+      // Only mark a photo as seen after its image has actually loaded.
+      rememberDisplayedPhoto(candidate);
+      // Don't reuse the current district's leftover photos next round.
+      available = [];
       userPhoto.src = candidate.url;
       userPhoto.hidden = false;
       $('photo-loading').classList.add('hidden');
