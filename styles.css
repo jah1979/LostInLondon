@@ -19,3 +19,50 @@
 .map-holder .leaflet-control-attribution{max-width:100%;white-space:normal;font-size:9px!important}
 .map-reset{font-family:Arial,sans-serif!important;font-size:25px!important;line-height:28px!important;font-weight:700!important;color:#253644!important;user-select:none}
 .map-reset:focus-visible{outline:3px solid #b8f05a;outline-offset:2px}
+
+/* Responsive desktop layout revamp — v0.3 */
+@media (min-width:761px) {
+  .welcome-wrap {grid-template-columns:minmax(320px,42%) minmax(0,58%);min-height:calc(100dvh - 160px)}
+  .welcome-body {padding:clamp(28px,3.4vw,64px) clamp(28px,4vw,80px)}
+  .welcome-body h1 {font-size:clamp(62px,6.1vw,105px);line-height:.94;max-width:750px}
+  .settings {max-width:730px}
+  .game-view {padding:16px clamp(20px,2.7vw,48px) 20px;min-height:calc(100dvh - 162px)}
+  .game-info {height:60px;flex-shrink:0}
+  .play-grid {max-height:none;min-height:540px;gap:20px;align-items:stretch}
+  .photo-panel {min-height:0}
+  .photo-stage {min-height:480px;border-radius:12px;box-shadow:0 22px 48px rgba(0,0,0,.17)}
+  .photo-credit {padding:10px 4px;font-size:11px;max-width:100%;overflow-wrap:anywhere}
+  .guess-panel {border-radius:12px;box-shadow:0 22px 48px rgba(0,0,0,.17);min-height:540px}
+  .panel-heading {padding:20px 22px 15px}
+  .panel-heading h2 {font-size:clamp(28px,3vw,38px)}
+  .map-holder {min-height:255px;margin:0 18px;border-radius:8px;flex:1}
+  .year-guess {margin:14px 18px 0;padding:14px 17px}
+  .guess-actions {padding:14px 18px 0;gap:9px}
+  .panel-foot {padding:10px 18px 15px}
+  .progress-track {flex-shrink:0}
+  .result-wrap {gap:28px}
+  .result-content {padding-left:16px}
+}
+@media (min-width:1100px) {
+  .play-grid {grid-template-columns:minmax(0,1.6fr) minmax(385px,.95fr)}
+  .guess-panel {min-height:580px}
+  .photo-stage {min-height:515px}
+  .map-holder {min-height:280px}
+  .year-topline h3 {font-size:24px}
+  .guess-button {min-height:55px}
+  .result-map-wrap {border-radius:12px}
+}
+@media (min-width:761px) and (max-width:1099px) {
+  .play-grid {grid-template-columns:minmax(0,1.05fr) minmax(350px,1fr);gap:14px}
+  .photo-stage {min-height:490px}
+  .guess-panel {min-height:550px}
+  .map-holder {min-height:255px}
+  .result-wrap {grid-template-columns:minmax(0,45%) minmax(0,55%);gap:14px}
+}
+@media (max-width:760px) {
+  .map-holder {height:310px}
+  .map-holder #map {min-height:0;height:100%}
+  .map-hint {font-size:8px;letter-spacing:.5px;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+  .guess-panel {min-height:590px}
+  .photo-credit {max-height:none}
+}
