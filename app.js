@@ -643,9 +643,28 @@
     userPhoto.style.transform = `translate(${panX}px,${panY}px) scale(${photoZoom})`;
     $('zoom-indicator').textContent = Math.round(photoZoom*100)+'%';
   }
-  function zoom(factor) {
-    photoZoom = clamp(Math.round(photoZoom*factor*100)/100,1,4);
-    if(photoZoom===1){panX=0;panY=0;}
+  function zoom(factor, clientX=null, clientY=null) {
+    const previousZoom = photoZoom;
+    const newZoom = clamp(previousZoom * factor, 1, 4);
+    if (Math.abs(newZoom-previousZoom) < 0.00001) return;
+    // Keep the point under the mouse cursor fixed as the photo enlarges.
+    // The photo image spans the stage and transforms about its centre.
+    if (clientX !== null && clientY !== null) {
+      const bounds = $('photo-stage').getBoundingClientRect();
+      const x = clientX - bounds.left - bounds.width/2;
+      const y = clientY - bounds.top - bounds.height/2;
+      panX = x - (x-panX) * newZoom / previousZoom;
+      panY = y - (y-panY) * newZoom / previousZoom;
+    }
+    photoZoom = newZoom;
+    if (photoZoom === 1) {
+      panX = 0;
+      panY = 0;
+    } else {
+      const stage = $('photo-stage');
+      panX = clamp(panX, -stage.clientWidth*(photoZoom-1)/2, stage.clientWidth*(photoZoom-1)/2);
+      panY = clamp(panY, -stage.clientHeight*(photoZoom-1)/2, stage.clientHeight*(photoZoom-1)/2);
+    }
     drawPhotoTransform();
   }
   $('zoom-in').addEventListener('click',()=>zoom(1.3));
@@ -668,8 +687,12 @@
     drag=null;userPhoto.classList.remove('grabbing');
   }));
   stage.addEventListener('wheel',evt=>{
-    if(!sceneReady || !evt.ctrlKey) return;
-    evt.preventDefault();zoom(evt.deltaY<0?1.15:1/1.15);
+    if (!sceneReady || !hasDesktopPointer() || evt.target.closest('button,a')) return;
+    evt.preventDefault(); // Zoom the photo rather than scrolling the page.
+    // Accommodate both physical mouse wheels and smooth trackpad deltas.
+    const pixels = evt.deltaY * (evt.deltaMode === 1 ? 16 : evt.deltaMode === 2 ? stage.clientHeight : 1);
+    const factor = Math.exp(clamp(-pixels * 0.002, -0.35, 0.35));
+    zoom(factor,evt.clientX,evt.clientY);
   },{passive:false});
 
   async function share(includeScore) {
