@@ -88,3 +88,59 @@
   .map-holder .reset-london-button {right:8px;top:8px;padding:8px 10px;font-size:10px;min-height:40px}
   .map-holder .reset-london-button span {font-size:20px}
 }
+
+/* BETA 0.8 — geographic London hero. Outline generalised from
+   Ordnance Survey Boundary-Line / utisz compound-cities (OGL v3).
+   Thames and Underground-inspired lines are illustrative. */
+.welcome-art {isolation:isolate}
+.welcome-art .art-london-map {
+  position:absolute;inset:0;width:100%;height:100%;z-index:1;
+  overflow:visible;pointer-events:none;
+}
+.welcome-art .art-london-fill {fill:url(#london-area-wash);stroke:none}
+.welcome-art .art-london-border {
+  fill:none;stroke:#b8f05a;stroke-width:2.4;stroke-linejoin:round;
+  opacity:.66;vector-effect:non-scaling-stroke
+}
+.welcome-art .art-tube-motif {
+  fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;
+  opacity:.38
+}
+.welcome-art .art-tube-red {stroke:#e66e81}
+.welcome-art .art-tube-yellow {stroke:#f4cf71}
+.welcome-art .art-tube-blue {stroke:#6ba6f0}
+.welcome-art .art-thames-glow {
+  fill:none;stroke:#80c6e8;stroke-width:14;stroke-linecap:round;
+  stroke-linejoin:round;opacity:.25;filter:blur(6px)
+}
+.welcome-art .art-thames-line {
+  fill:none;stroke:#8bcdf1;stroke-width:3.5;stroke-linecap:round;
+  stroke-linejoin:round;opacity:.75
+}
+.welcome-art .art-borough-dots circle {
+  fill:#d0ff88;stroke:#101c2d;stroke-width:1.3;opacity:.75;
+  filter:drop-shadow(0 0 3px rgba(184,240,90,.8))
+}
+.welcome-art .art-ring {z-index:2}
+.welcome-art .art-pin {
+  position:absolute;top:45%;left:50%;width:122px;height:161px;
+  transform:translate(-50%,-58%);z-index:4;
+  overflow:visible;filter:drop-shadow(0 0 24px rgba(184,240,90,.3))
+}
+.welcome-art .art-city-label {
+  position:absolute;top:13%;left:13%;z-index:3;
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;letter-spacing:2px;font-weight:800;
+  color:#d9e7e0;text-shadow:0 1px 5px #081622
+}
+.welcome-art .art-label-line {height:2px;width:22px;background:var(--accent)}
+.welcome-art .art-label-minor {font-size:9px;letter-spacing:1px;color:#8eacbb}
+.welcome-art .art-coords,.welcome-art .art-cross {z-index:3}
+@media(max-width:760px) {
+  .welcome-art .art-london-map {width:100%;height:100%}
+  .welcome-art .art-pin {width:70px;height:93px;transform:translate(-50%,-59%)}
+  .welcome-art .art-city-label {left:6%;top:11%;font-size:8px;gap:5px;letter-spacing:1.1px}
+  .welcome-art .art-label-line {width:12px}
+  .welcome-art .art-label-minor {display:none}
+  .welcome-art .art-london-border {stroke-width:2.7}
+}
