@@ -57,3 +57,7 @@ The game code in this folder is released under MIT (see `LICENSE`). Photographs 
 ## Deployment check
 
 This static site is published with GitHub Pages from the root of the `main` branch.
+
+
+### Landing-page boundary attribution
+The decorative Greater London outline was simplified from Ordnance Survey Boundary-Line geometry distributed in [utisz/compound-cities](https://github.com/utisz/compound-cities/blob/master/greater-london.geo.json), under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Contains Ordnance Survey data © Crown copyright and database right. The Thames path and Tube-inspired lines are illustrative, not authoritative GIS layers or official Transport for London route maps.
