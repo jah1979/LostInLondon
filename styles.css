@@ -144,3 +144,49 @@
   .welcome-art .art-label-minor {display:none}
   .welcome-art .art-london-border {stroke-width:2.7}
 }
+
+/* BETA 0.9 — creator credit and optional Ko-fi support */
+.creator-support {
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  width:100%;max-width:730px;margin-top:24px;padding:18px 20px;
+  border:1px solid rgba(184,240,90,.22);border-radius:9px;
+  background:linear-gradient(110deg,rgba(23,42,54,.76),rgba(17,30,43,.55));
+}
+.creator-support-copy {min-width:0}
+.creator-kicker {
+  display:block;color:#9bb2c2;font-size:9px;font-weight:800;
+  letter-spacing:1.7px;
+}
+.creator-support-copy p {
+  margin:7px 0 4px;color:#e1edeb;font-size:14px;line-height:1.35;font-weight:600;
+}
+.creator-support-copy p a {
+  color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(184,240,90,.32);
+}
+.creator-support-copy p a:hover,.creator-support-copy p a:focus-visible {
+  border-bottom-color:var(--accent)
+}
+.creator-support-copy small {
+  display:block;color:#93aabb;font-size:11px;line-height:1.6
+}
+.creator-pint-link {
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  flex-shrink:0;min-height:46px;padding:13px 15px;
+  border:1px solid #b8f05a;border-radius:6px;
+  color:#101b09;background:var(--accent);
+  font-size:10px;line-height:1.2;font-weight:900;letter-spacing:.7px;
+  text-align:center;text-decoration:none;transition:background .16s,transform .16s;
+}
+.creator-pint-link:hover {background:#d1ff82;transform:translateY(-2px)}
+.creator-pint-link:focus-visible {outline:3px solid white;outline-offset:3px}
+.creator-pint-link > span:first-child {font-size:17px;line-height:1}
+.creator-pint-arrow {font-size:17px;line-height:1}
+.footer a:focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:1250px) and (min-width:761px) {
+  .creator-support {flex-wrap:wrap;gap:12px}
+  .creator-pint-link {width:100%}
+}
+@media(max-width:760px) {
+  .creator-support {margin-top:17px;padding:14px 15px;gap:14px;flex-wrap:wrap}
+  .creator-pint-link {width:100%;min-height:46px}
+}
