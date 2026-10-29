@@ -252,3 +252,25 @@
   .area-search-field input {height:43px;font-size:12px}
   .area-search-options {max-height:206px}
 }
+
+/* BETA 0.11 — four Thames-side / London-wide hunting-ground choices */
+#mode-select {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+#mode-select button {
+  min-width:0;
+  min-height:44px;
+  padding:10px 9px;
+  text-align:center;
+  white-space:normal;
+  line-height:1.25;
+}
+@media(min-width:1650px) {
+  #mode-select {grid-template-columns:repeat(4,minmax(0,1fr))}
+  #mode-select button {font-size:10px;letter-spacing:.45px;padding:10px 6px}
+}
+@media(max-width:420px) {
+  #mode-select button {font-size:9px;letter-spacing:.5px;padding:10px 6px}
+}
