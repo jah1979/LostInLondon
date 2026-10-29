@@ -581,6 +581,7 @@
 
   const normaliseArea = value => String(value).toLowerCase()
     .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/['’]/g,'') // King's Cross also matches 'Kings Cross'.
     .replace(/[^a-z0-9]+/g,' ').trim();
 
   function closeAreaResults() {
