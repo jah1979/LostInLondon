@@ -47,6 +47,24 @@
     {name:'Enfield',lat:51.6520,lon:-0.0800},
     {name:'Beckenham',lat:51.4085,lon:-0.0248}
   ];
+
+  // An offline gazetteer of approximate AREA CENTRES; these are not
+  // individual photo coordinates, and search never reveals the answer.
+  // No third-party geocoding service, API keys or per-keystroke requests.
+  const AREA_BOROUGHS = [["Barking and Dagenham",51.536,0.081],["Barnet",51.625,-0.152],["Bexley",51.455,0.147],["Brent",51.558,-0.265],["Bromley",51.406,0.016],["Camden",51.539,-0.143],["Croydon",51.372,-0.1],["Ealing",51.513,-0.308],["Enfield",51.652,-0.08],["Greenwich",51.483,-0.008],["Hackney",51.545,-0.056],["Hammersmith and Fulham",51.493,-0.224],["Haringey",51.59,-0.106],["Harrow",51.579,-0.339],["Havering",51.576,0.184],["Hillingdon",51.546,-0.478],["Hounslow",51.468,-0.362],["Islington",51.536,-0.103],["Kensington and Chelsea",51.499,-0.184],["Kingston upon Thames",51.412,-0.3],["Lambeth",51.461,-0.115],["Lewisham",51.461,-0.013],["Merton",51.419,-0.196],["Newham",51.531,0.031],["Redbridge",51.559,0.073],["Richmond upon Thames",51.461,-0.303],["Southwark",51.502,-0.09],["Sutton",51.361,-0.191],["Tower Hamlets",51.515,-0.037],["Waltham Forest",51.587,-0.02],["Wandsworth",51.457,-0.194],["Westminster",51.502,-0.126],["City of London",51.515,-0.092]];
+  const AREA_NEIGHBOURHOODS = [["Acton",51.509,-0.263],["Aldgate",51.514,-0.075],["Angel",51.532,-0.106],["Balham",51.443,-0.152],["Barbican",51.519,-0.093],["Barnes",51.474,-0.242],["Battersea",51.474,-0.164],["Bayswater",51.512,-0.189],["Bermondsey",51.498,-0.073],["Bethnal Green",51.527,-0.055],["Blackheath",51.466,0.009],["Bloomsbury",51.52,-0.124],["Bow",51.527,-0.022],["Brentford",51.487,-0.309],["Brixton",51.462,-0.114],["Brockley",51.463,-0.037],["Camberwell",51.474,-0.093],["Camden Town",51.539,-0.143],["Canning Town",51.514,0.008],["Catford",51.445,-0.021],["Chelsea",51.487,-0.168],["Clapham",51.463,-0.139],["Clapham Junction",51.465,-0.17],["Colindale",51.595,-0.25],["Dalston",51.545,-0.075],["Deptford",51.476,-0.027],["Dulwich",51.445,-0.085],["Earls Court",51.492,-0.194],["East Dulwich",51.457,-0.073],["East Ham",51.538,0.052],["Elephant and Castle",51.495,-0.1],["Farringdon",51.52,-0.105],["Finsbury Park",51.565,-0.106],["Finchley",51.6,-0.196],["Forest Hill",51.439,-0.053],["Fulham",51.478,-0.199],["Golders Green",51.571,-0.194],["Hackney Central",51.547,-0.055],["Hampstead Heath",51.56,-0.166],["Harlesden",51.537,-0.257],["Herne Hill",51.454,-0.103],["Highbury",51.548,-0.1],["Highgate",51.577,-0.147],["Holborn",51.518,-0.12],["Hoxton",51.532,-0.085],["Kennington",51.488,-0.106],["Kensington",51.501,-0.193],["Kentish Town",51.551,-0.14],["Kew",51.478,-0.288],["Kilburn",51.538,-0.194],["King's Cross",51.531,-0.123],["Knightsbridge",51.501,-0.159],["Limehouse",51.512,-0.037],["London Bridge",51.506,-0.087],["Maida Vale",51.53,-0.187],["Marylebone",51.522,-0.154],["Mayfair",51.511,-0.147],["Mile End",51.525,-0.033],["Muswell Hill",51.59,-0.144],["Notting Hill",51.51,-0.202],["Old Street",51.526,-0.088],["Oval",51.481,-0.113],["Paddington",51.515,-0.176],["Peckham",51.473,-0.068],["Pimlico",51.49,-0.135],["Poplar",51.508,-0.018],["Putney",51.461,-0.215],["Queens Park",51.534,-0.206],["Rotherhithe",51.499,-0.052],["Shepherd's Bush",51.504,-0.223],["Shoreditch",51.526,-0.078],["South Kensington",51.495,-0.174],["Southall",51.509,-0.374],["St John's Wood",51.535,-0.173],["St Paul's",51.514,-0.098],["Streatham",51.428,-0.129],["Streatham Hill",51.439,-0.124],["Streatham Common",51.418,-0.136],["Surbiton",51.393,-0.304],["Swiss Cottage",51.543,-0.175],["Sydenham",51.426,-0.054],["Tooting Bec",51.436,-0.159],["Tooting Broadway",51.427,-0.167],["Tottenham",51.589,-0.073],["Twickenham",51.446,-0.329],["Vauxhall",51.486,-0.124],["Victoria",51.495,-0.144],["Walthamstow",51.584,-0.02],["Walworth",51.488,-0.094],["Wapping",51.505,-0.057],["Waterloo",51.503,-0.114],["West Brompton",51.487,-0.195],["West Ham",51.528,0.004],["West Kensington",51.49,-0.208],["West Norwood",51.43,-0.103],["Whitechapel",51.519,-0.061],["Willesden",51.547,-0.235],["Wood Green",51.597,-0.109],["Woolwich Arsenal",51.49,0.07],["Acton Town",51.502,-0.279],["Canary Wharf",51.505,-0.02],["Covent Garden",51.512,-0.123],["Leicester Square",51.511,-0.128],["Piccadilly Circus",51.51,-0.134],["Oxford Circus",51.515,-0.141],["London Fields",51.541,-0.059],["Borough Market",51.505,-0.091]];
+  const AREA_INDEX = (() => {
+    const unique = new Map();
+    const add = (name, lat, lon, kind, zoom) => {
+      const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!unique.has(key)) unique.set(key, {name,lat,lon,kind,zoom});
+    };
+    AREA_BOROUGHS.forEach(([name,lat,lon]) => add(name,lat,lon,'Borough',11));
+    SEEDS.forEach(({name,lat,lon}) => add(name,lat,lon,'Area',13));
+    AREA_NEIGHBOURHOODS.forEach(([name,lat,lon]) => add(name,lat,lon,'Area',13));
+    return [...unique.values()];
+  })();
+
   const IGNORED_TITLES = /(?:\.svg$|diagram|floor.?plan|location.?map|coat of arms|icon|logo|map of|screenshot|poster|advertis|infographic|route map|blue plaque closeup)/i;
 
   const settings = {area:'all', type:'both', rounds:5, timer:0};
@@ -553,6 +571,136 @@
 
   $('reset-map').addEventListener('click', resetGuessMap);
 
+  // Lightweight and offline area search. No map pin is created by selecting
+  // a result: the player must still click the map to lock in a location.
+  const areaSearch = $('area-search-input');
+  const areaSearchBox = $('area-search-container');
+  const areaResults = $('area-search-options');
+  const areaClear = $('area-search-clear');
+  let areaMatches = [], areaActive = -1;
+
+  const normaliseArea = value => String(value).toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+
+  function closeAreaResults() {
+    areaResults.hidden = true;
+    areaSearch.setAttribute('aria-expanded', 'false');
+    areaSearch.removeAttribute('aria-activedescendant');
+    areaMatches = [];
+    areaActive = -1;
+  }
+
+  function highlightArea(index) {
+    areaActive = index;
+    const options = [...areaResults.querySelectorAll('[role="option"]')];
+    options.forEach((option,i) => {
+      const active = i === index;
+      option.classList.toggle('active',active);
+      option.setAttribute('aria-selected', String(active));
+    });
+    if (index >= 0 && options[index]) {
+      areaSearch.setAttribute('aria-activedescendant',options[index].id);
+      options[index].scrollIntoView({block:'nearest'});
+    } else areaSearch.removeAttribute('aria-activedescendant');
+  }
+
+  function selectArea(item) {
+    if (!item || !map) return;
+    map.stop();
+    map.invalidateSize({pan:false,animate:false});
+    map.setView([item.lat,item.lon],item.zoom,{animate:false});
+    areaSearch.value = item.name;
+    areaClear.hidden = false;
+    closeAreaResults();
+    // Searching moves only the view; existing guesses are left untouched.
+    areaSearch.blur();
+  }
+
+  function renderAreaMatches() {
+    const query = normaliseArea(areaSearch.value);
+    areaClear.hidden = !areaSearch.value;
+    areaResults.replaceChildren();
+    if (query.length < 2) {
+      closeAreaResults();
+      return;
+    }
+    const terms = query.split(' ');
+    areaMatches = AREA_INDEX.map(item => {
+      const name = normaliseArea(item.name);
+      const exact = name === query;
+      const starts = name.startsWith(query);
+      const words = terms.every(term => name.includes(term));
+      if (!words) return null;
+      return {item,rank:exact?0:starts?1:2};
+    }).filter(Boolean)
+      .sort((a,b) => a.rank-b.rank || a.item.name.localeCompare(b.item.name))
+      .slice(0,7).map(match => match.item);
+    areaActive = -1;
+    if (!areaMatches.length) {
+      const empty = document.createElement('div');
+      empty.className = 'area-search-empty';
+      empty.textContent = 'No matching area in this London list';
+      areaResults.append(empty);
+    } else areaMatches.forEach((item,i) => {
+      const option = document.createElement('div');
+      option.id = 'area-search-option-'+i;
+      option.className = 'area-search-option';
+      option.setAttribute('role','option');
+      option.setAttribute('aria-selected','false');
+      option.dataset.index = String(i);
+      const title = document.createElement('strong');
+      title.textContent = item.name;
+      const detail = document.createElement('span');
+      detail.textContent = item.kind;
+      option.append(title,detail);
+      areaResults.append(option);
+    });
+    areaResults.hidden = false;
+    areaSearch.setAttribute('aria-expanded','true');
+  }
+
+  areaSearch.addEventListener('input',renderAreaMatches);
+  areaSearch.addEventListener('focus',() => {
+    if (normaliseArea(areaSearch.value).length >= 2) renderAreaMatches();
+  });
+  areaSearch.addEventListener('keydown',event => {
+    if (event.key === 'Escape') {
+      closeAreaResults();
+      return;
+    }
+    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && areaMatches.length) {
+      event.preventDefault();
+      const move = event.key === 'ArrowDown' ? 1 : -1;
+      highlightArea((areaActive+move+areaMatches.length)%areaMatches.length);
+    } else if (event.key === 'Enter' && areaMatches.length) {
+      event.preventDefault();
+      selectArea(areaMatches[areaActive >= 0 ? areaActive : 0]);
+    }
+  });
+  // Clicking the suggestions does not submit a guess or change its pin.
+  areaResults.addEventListener('pointerdown',event => {
+    const option = event.target.closest('[data-index]');
+    if (!option) return;
+    event.preventDefault();
+    selectArea(areaMatches[Number(option.dataset.index)]);
+  });
+  areaResults.addEventListener('click',event => {
+    const option = event.target.closest('[data-index]');
+    if (option) selectArea(areaMatches[Number(option.dataset.index)]);
+  });
+  document.addEventListener('pointerdown',event => {
+    if (!areaSearchBox.contains(event.target)) closeAreaResults();
+  });
+  areaClear.addEventListener('click',() => {
+    areaSearch.value = '';
+    areaClear.hidden = true;
+    closeAreaResults();
+    areaSearch.focus();
+  });
+
+
+
   function renderProgress() {
     $('progress-track').replaceChildren();
     for (let i=0;i<settings.rounds;i++) {
@@ -605,6 +753,9 @@
     $('submit-guess').innerHTML = settings.type === 'both' ? 'LOCK IN WHERE + WHEN <span>→</span>' : 'LOCK IN LOCATION <span>→</span>';
     $('panel-foot').textContent = settings.type === 'both' ? 'The year is checked against the original photo date.' : 'Zoom in for a more precise location guess.';
     updateYear(MAX_YEAR);
+    areaSearch.value = '';
+    areaClear.hidden = true;
+    closeAreaResults();
     resetPhotoZoom();
     renderProgress();
     stopTimer();
