@@ -4,7 +4,7 @@ A free, mobile-friendly London-only photo-geography game, inspired by location g
 
 ## Play
 
-1. Choose **Greater London** or **Inner London** (roughly a 7 km radius from central London).
+1. Choose a hunting ground: **Greater London**, **Inner London** (roughly a 7 km radius), **North of the River**, or **South of the River**. North/South modes cover Greater London on the selected side of the Thames.
 2. Choose **Where + When** or **Where Only**, and 5 or 10 rounds.
 3. Optionally set a 90-second round timer.
 4. Inspect a real London photo, optionally search for a London borough or neighbourhood to move the guessing map there, place your own pin on the map, and estimate the photograph's year with the slider.
@@ -42,6 +42,8 @@ Then visit http://localhost:8000.
 - **OpenStreetMap:** Maps are rendered with Leaflet and OpenStreetMap data/tiles and retain the required copyright credit.
 
 ### Limitations of this first version
+
+- The **North of the River** and **South of the River** game modes filter candidate photo coordinates using a simplified, locally stored Thames centreline (including its Greenwich Peninsula bend). This is an approximate river-bank split rather than a surveyed boundary; a narrow strip directly on the estimated river line is excluded to avoid ambiguous bridge and water photographs. The gameplay needs no extra location API.
 
 - The London-area search is an **offline shortlist** of boroughs and well-known neighbourhoods (with approximate centres), not a complete address or landmark geocoder. Selecting a search result moves the map without placing the player's pin. No API keys or extra network calls are required.
 
