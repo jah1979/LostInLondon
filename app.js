@@ -665,6 +665,7 @@
   areaSearch.addEventListener('focus',() => {
     if (normaliseArea(areaSearch.value).length >= 2) renderAreaMatches();
   });
+  areaSearch.addEventListener('blur',() => setTimeout(closeAreaResults,180));
   areaSearch.addEventListener('keydown',event => {
     if (event.key === 'Escape') {
       closeAreaResults();
@@ -673,7 +674,8 @@
     if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && areaMatches.length) {
       event.preventDefault();
       const move = event.key === 'ArrowDown' ? 1 : -1;
-      highlightArea((areaActive+move+areaMatches.length)%areaMatches.length);
+      highlightArea(areaActive < 0 ? (move === 1 ? 0 : areaMatches.length-1) :
+        (areaActive+move+areaMatches.length)%areaMatches.length);
     } else if (event.key === 'Enter' && areaMatches.length) {
       event.preventDefault();
       selectArea(areaMatches[areaActive >= 0 ? areaActive : 0]);
