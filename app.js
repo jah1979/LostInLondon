@@ -201,9 +201,37 @@
     }
     return inside;
   }
+  // Approximate west-to-east Thames centreline, including its meander around
+  // the Greenwich Peninsula. Derived as a simplified path for London game modes,
+  // not a surveyed bank boundary. Remains fully offline.
+  const THAMES_CENTRELINE = [[51.43,-0.7],[51.43,-0.56],[51.42,-0.5],[51.408,-0.44],[51.407,-0.39],[51.418,-0.354],[51.433,-0.329],[51.446,-0.313],[51.464,-0.308],[51.472,-0.295],[51.482,-0.28],[51.491,-0.259],[51.491,-0.24],[51.49,-0.221],[51.486,-0.205],[51.481,-0.184],[51.482,-0.164],[51.486,-0.149],[51.5,-0.128],[51.504,-0.121],[51.509,-0.115],[51.509,-0.107],[51.508,-0.096],[51.506,-0.079],[51.504,-0.069],[51.504,-0.053],[51.497,-0.036],[51.488,-0.024],[51.486,-0.013],[51.487,-0.009],[51.495,-0.008],[51.505,-0.009],[51.51,0],[51.509,0.017],[51.505,0.027],[51.496,0.037],[51.492,0.07],[51.495,0.087],[51.501,0.109],[51.51,0.128],[51.511,0.148],[51.505,0.176],[51.497,0.2],[51.5,0.235],[51.51,0.265],[51.512,0.33],[51.52,0.7]];
+  const NORTH_OF_THAMES_POLYGON = [...THAMES_CENTRELINE,[52,0.7],[52,-0.7]];
+
+  function distanceToThamesKm(lat, lon) {
+    const kmLat=111.2, kmLon=kmLat*Math.cos(lat*Math.PI/180);
+    const x=lon*kmLon, y=lat*kmLat;
+    let nearest=Infinity;
+    for (let i=1;i<THAMES_CENTRELINE.length;i++) {
+      const [latA,lonA]=THAMES_CENTRELINE[i-1], [latB,lonB]=THAMES_CENTRELINE[i];
+      const ax=lonA*kmLon, ay=latA*kmLat, bx=lonB*kmLon, by=latB*kmLat;
+      const dx=bx-ax, dy=by-ay, magnitude=dx*dx+dy*dy;
+      const t=magnitude?Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/magnitude)):0;
+      nearest=Math.min(nearest,Math.hypot(x-ax-t*dx,y-ay-t*dy));
+    }
+    return nearest;
+  }
+
   function inPlayArea(lat, lon) {
     if (!pointInPolygon(lat, lon, LONDON_POLYGON)) return false;
-    return settings.area !== 'central' || haversine(lat, lon, ...LONDON_CENTER) <= 7;
+    if (settings.area === 'central') return haversine(lat, lon, ...LONDON_CENTER) <= 7;
+    if (settings.area === 'north' || settings.area === 'south') {
+      // Exclude geotags right on our simplified river path; they could
+      // represent boats, bridges or an ambiguous photo location.
+      if (distanceToThamesKm(lat,lon) < 0.05) return false;
+      const north=pointInPolygon(lat,lon,NORTH_OF_THAMES_POLYGON);
+      return settings.area === 'north' ? north : !north;
+    }
+    return true;
   }
 
   function cleanHtml(html = '') {
@@ -307,7 +335,10 @@
       if (token !== runToken) return null;
       if (!available.length) {
         let possibleSeeds = SEEDS.filter(s =>
-          settings.area === 'all' || haversine(s.lat,s.lon,...LONDON_CENTER) < 6.5);
+          settings.area === 'central'
+            ? haversine(s.lat,s.lon,...LONDON_CENTER) < 6.5 && inPlayArea(s.lat,s.lon)
+            : inPlayArea(s.lat,s.lon));
+        if (!possibleSeeds.length) return null;
         let remaining = possibleSeeds.filter(s => !usedSeeds.has(s.name));
         if (!remaining.length) { usedSeeds.clear(); remaining = possibleSeeds; }
         // Avoid returning to the same district on consecutive rounds.
