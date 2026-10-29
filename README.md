@@ -7,7 +7,7 @@ A free, mobile-friendly London-only photo-geography game, inspired by location g
 1. Choose **Greater London** or **Inner London** (roughly a 7 km radius from central London).
 2. Choose **Where + When** or **Where Only**, and 5 or 10 rounds.
 3. Optionally set a 90-second round timer.
-4. Inspect a real London photo, place your guess on the OpenStreetMap map, and estimate the photograph's year with the slider.
+4. Inspect a real London photo, optionally search for a London borough or neighbourhood to move the guessing map there, place your own pin on the map, and estimate the photograph's year with the slider.
 5. Reveal the actual location and year, with separate scores for both answers.
 6. Share your game link and your score with mates.
 
@@ -42,6 +42,8 @@ Then visit http://localhost:8000.
 - **OpenStreetMap:** Maps are rendered with Leaflet and OpenStreetMap data/tiles and retain the required copyright credit.
 
 ### Limitations of this first version
+
+- The London-area search is an **offline shortlist** of boroughs and well-known neighbourhoods (with approximate centres), not a complete address or landmark geocoder. Selecting a search result moves the map without placing the player's pin. No API keys or extra network calls are required.
 
 - This is a **photo-guessing game**, not navigable Google Street View. You can zoom/pan each photograph; you cannot walk around the street. Google Street View integration would require additional implementation, credentials and terms review.
 - London filtering is based on an **approximate Greater London outline**, not authoritative borough boundaries. The inner-London option uses a 7 km radius rather than exact fare zones.
