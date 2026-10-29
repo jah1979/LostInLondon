@@ -123,7 +123,7 @@
 }
 .welcome-art .art-ring {z-index:2}
 .welcome-art .art-pin {
-  position:absolute;top:45%;left:50%;width:122px;height:161px;
+  position:absolute;top:45%;left:50%;width:61px;height:80.5px;
   transform:translate(-50%,-58%);z-index:4;
   overflow:visible;filter:drop-shadow(0 0 24px rgba(184,240,90,.3))
 }
@@ -138,7 +138,7 @@
 .welcome-art .art-coords,.welcome-art .art-cross {z-index:3}
 @media(max-width:760px) {
   .welcome-art .art-london-map {width:100%;height:100%}
-  .welcome-art .art-pin {width:70px;height:93px;transform:translate(-50%,-59%)}
+  .welcome-art .art-pin {width:35px;height:46.5px;transform:translate(-50%,-59%)}
   .welcome-art .art-city-label {left:6%;top:11%;font-size:8px;gap:5px;letter-spacing:1.1px}
   .welcome-art .art-label-line {width:12px}
   .welcome-art .art-label-minor {display:none}
