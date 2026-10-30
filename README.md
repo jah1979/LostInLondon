@@ -7,7 +7,7 @@ A free, mobile-friendly London-only photo-geography game, inspired by location g
 1. Choose a hunting ground: **Greater London**, **Inner London** (roughly a 7 km radius), **North of the River**, or **South of the River**. North/South modes cover Greater London on the selected side of the Thames.
 2. Choose **Where + When** or **Where Only**, and 5 or 10 rounds.
 3. Optionally set a 90-second round timer.
-4. Inspect a real London photo, optionally search for a London borough or neighbourhood to move the guessing map there, place your own pin on the map, and estimate the photograph's year with the slider. On mobile, pinch with two fingers to zoom (up to 4×) and drag to pan the zoomed photo; on desktop, use the mouse wheel or the +/− buttons.
+4. Inspect a real London photo and search the map by area or landmark. The local place list responds instantly; for less familiar London locations, select **Search all London** from the suggestions to look up OpenStreetMap places via Photon on demand. This re-centres the map without placing a guess pin. In **Where + When** mode, estimate the photo year; in **Where Only**, guess the location without a date prompt. On mobile, pinch with two fingers to zoom (up to 4×) and drag to pan; on desktop, use the mouse wheel or +/− buttons.
 5. Reveal the actual location and year, with separate scores for both answers.
 6. Share your game link and your score with mates.
 
@@ -47,7 +47,7 @@ Then visit http://localhost:8000.
 
 - **North of the River / South of the River** use a local OS Open Rivers-derived Thames centreline produced by scripts/generate_thames.py from OS watercourse links. The source is generalised centreline data, NOT surveyed bank polygons, and a continuous line is map-matched to it with interpolated connections where necessary. Geotags within 50 metres of the estimated river line are excluded as ambiguous. The final image coordinates are checked, not merely the search neighbourhood. This is still an approximate side-of-river boundary near complex meanders and islands. Players make no extra GIS requests.
 
-- The London-area search is an **offline shortlist** of boroughs and well-known neighbourhoods (with approximate centres), not a complete address or landmark geocoder. Selecting a search result moves the map without placing the player's pin. No API keys or extra network calls are required.
+- **Map-area search:** An offline shortlist of boroughs and well-known neighbourhoods appears as you type. To find less familiar places and landmarks, the user can explicitly select **Search all London**. This sends that one query to [Photon](https://photon.komoot.io/) (using OpenStreetMap geocoding data) and returns London-bounded point results. The lookup is not automatic autocomplete; results are cached in memory for the session, and the search can fail if the public demo server is busy. Photon permits modest use but does not guarantee availability; high traffic needs a dedicated instance or paid provider. Search query text is shared with that external service only when the user selects the option. Selecting a result moves the map without placing a guess pin. OSM place data has [Open Database Licence](https://www.openstreetmap.org/copyright) obligations; attribution is displayed beside online search results.
 
 - This is a **photo-guessing game**, not navigable Google Street View. You can zoom/pan each photograph; you cannot walk around the street. Google Street View integration would require additional implementation, credentials and terms review.
 - London filtering is based on an **approximate Greater London outline**, not authoritative borough boundaries. The inner-London option uses a 7 km radius rather than exact fare zones.
@@ -55,6 +55,9 @@ Then visit http://localhost:8000.
 - Photos are randomly queried live from Wikimedia Commons; results are not curated, and requests depend on the availability of the Commons API. Many date-tagged geolocated Commons photos are relatively recent, so historic variety may be uneven. Photo searches may fail on slow or restricted networks, and there is a **Try another location** button.
 - The share button copies your **website link** or invokes your device's share sheet. Players receive random rounds, not the same seeded/daily challenge. Scores are local to each browser, not posted to a leaderboard.
 - This is a small personal/demo site. Before high-traffic promotion, review the Wikimedia Commons API etiquette/terms and [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/) and consider a dedicated map tile provider.
+
+
+**Additional place search attribution:** Landmark and place search is provided by [Photon (komoot)](https://photon.komoot.io/) using © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), under ODbL. Place search is separate from the Wikimedia Commons image metadata and Ordnance Survey river geometry. The public Photon endpoint is provided on a best-effort basis with fair-use limits.
 
 ## Code and photo licences
 
