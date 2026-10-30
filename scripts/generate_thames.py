@@ -19,7 +19,7 @@ from shapely.ops import linemerge, unary_union
 
 ENDPOINT="https://services.arcgis.com/qHLhLQrcvEnxjtPr/arcgis/rest/services/OS_OpenRivers/FeatureServer/0/query"
 PARAMS={
-    "where":"name1 LIKE '%Thames%' OR name2 LIKE '%Thames%'",
+    "where":"name1 LIKE '%Thames%' OR name2 LIKE '%Thames%' OR form = 'tidalRiver'",
     "geometry":"-0.65,51.25,0.45,51.74",
     "geometryType":"esriGeometryEnvelope",
     "spatialRel":"esriSpatialRelIntersects",
