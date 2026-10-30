@@ -58,7 +58,7 @@ def main():
     # direction, rather than joining/discarding river sections at branch nodes.
     import re
     app=Path("app.js").read_text(encoding="utf-8")
-    match=re.search(r"const THAMES_CENTRELINE = (\[[^\n]*\]);",app)
+    match=re.search(r"const THAMES_CENTRELINE_FALLBACK = (\[[^\n]*\]);",app)
     if not match:
         raise RuntimeError("Coarse reference line missing; cannot validate official Thames links")
     reference=json.loads(match.group(1))
