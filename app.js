@@ -669,11 +669,14 @@
   const areaSearchBox = $('area-search-container');
   const areaResults = $('area-search-options');
   const areaClear = $('area-search-clear');
-  let areaMatches = [], areaActive = -1;
+  const areaCredit = $('area-search-credit');
+  const PLACE_SEARCH_ENDPOINT = 'https://photon.komoot.io/api';
+  const placeCache = new Map();
+  let areaMatches = [], areaActive = -1, areaLookupController = null;
 
   const normaliseArea = value => String(value).toLowerCase()
     .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/['’]/g,'') // King's Cross also matches 'Kings Cross'.
+    .replace(/['’]/g,'') // King's Cross also matches Kings Cross.
     .replace(/[^a-z0-9]+/g,' ').trim();
 
   function closeAreaResults() {
@@ -682,6 +685,13 @@
     areaSearch.removeAttribute('aria-activedescendant');
     areaMatches = [];
     areaActive = -1;
+  }
+
+  function cancelAreaLookup() {
+    if (areaLookupController) {
+      areaLookupController.abort();
+      areaLookupController = null;
+    }
   }
 
   function highlightArea(index) {
@@ -699,46 +709,35 @@
   }
 
   function selectArea(item) {
-    if (!item || !map) return;
+    if (!item) return;
+    if (item.action === 'online') {
+      lookupLondonPlace();
+      return;
+    }
+    if (!map) return;
     map.stop();
     map.invalidateSize({pan:false,animate:false});
     map.setView([item.lat,item.lon],item.zoom,{animate:false});
     areaSearch.value = item.name;
     areaClear.hidden = false;
     closeAreaResults();
-    // Searching moves only the view; existing guesses are left untouched.
+    // Searching moves only the map. It NEVER places or changes a guess pin.
     areaSearch.blur();
   }
 
-  function renderAreaMatches() {
-    const query = normaliseArea(areaSearch.value);
-    areaClear.hidden = !areaSearch.value;
-    areaResults.replaceChildren();
-    if (query.length < 2) {
-      closeAreaResults();
-      return;
-    }
-    const terms = query.split(' ');
-    areaMatches = AREA_INDEX.map(item => {
-      const name = normaliseArea(item.name);
-      const exact = name === query;
-      const starts = name.startsWith(query);
-      const words = terms.every(term => name.includes(term));
-      if (!words) return null;
-      return {item,rank:exact?0:starts?1:2};
-    }).filter(Boolean)
-      .sort((a,b) => a.rank-b.rank || a.item.name.localeCompare(b.item.name))
-      .slice(0,7).map(match => match.item);
+  function showAreaMatches(items, emptyMessage='No matching London places') {
+    areaMatches = items;
     areaActive = -1;
-    if (!areaMatches.length) {
+    areaResults.replaceChildren();
+    if (!items.length) {
       const empty = document.createElement('div');
       empty.className = 'area-search-empty';
-      empty.textContent = 'No matching area in this London list';
+      empty.textContent = emptyMessage;
       areaResults.append(empty);
-    } else areaMatches.forEach((item,i) => {
+    } else items.forEach((item,i) => {
       const option = document.createElement('div');
       option.id = 'area-search-option-'+i;
-      option.className = 'area-search-option';
+      option.className = 'area-search-option' + (item.action === 'online' ? ' area-search-more' : '');
       option.setAttribute('role','option');
       option.setAttribute('aria-selected','false');
       option.dataset.index = String(i);
@@ -751,6 +750,102 @@
     });
     areaResults.hidden = false;
     areaSearch.setAttribute('aria-expanded','true');
+    areaSearch.removeAttribute('aria-activedescendant');
+  }
+
+  function renderAreaMatches() {
+    // Live keystrokes only search the local gazetteer. Never query an API
+    // automatically: online place lookup requires explicit user action.
+    cancelAreaLookup();
+    areaCredit.hidden = true;
+    const query = normaliseArea(areaSearch.value);
+    areaClear.hidden = !areaSearch.value;
+    if (query.length < 2) {
+      closeAreaResults();
+      return;
+    }
+    const terms = query.split(' ');
+    const localMatches = AREA_INDEX.map(item => {
+      const name = normaliseArea(item.name);
+      if (!terms.every(term => name.includes(term))) return null;
+      return {item,rank:name === query ? 0 : name.startsWith(query) ? 1 : 2};
+    }).filter(Boolean)
+      .sort((a,b) => a.rank-b.rank || a.item.name.localeCompare(b.item.name))
+      .slice(0,6).map(match => match.item);
+    if (query.length >= 3) {
+      localMatches.push({
+        action:'online',
+        name:'SEARCH ALL LONDON FOR “'+areaSearch.value.trim().slice(0,65)+'”',
+        kind:'PLACES + LANDMARKS'
+      });
+    }
+    showAreaMatches(localMatches, 'Keep typing to search all London landmarks');
+  }
+
+  async function lookupLondonPlace() {
+    const rawQuery=areaSearch.value.trim();
+    const searchKey=normaliseArea(rawQuery);
+    if (searchKey.length < 3) return;
+    cancelAreaLookup();
+    const controller=new AbortController();
+    areaLookupController=controller;
+    showAreaMatches([], 'SEARCHING LONDON PLACES…');
+    areaCredit.hidden = false; // OSM/Photon attribution when querying.
+    let timeout;
+    try {
+      let results=placeCache.get(searchKey);
+      if (!results) {
+        // Bounds and relevance filter: restrict lookup to London, not global
+        // place names. The server's public demo is for modest use only.
+        const url=new URL(PLACE_SEARCH_ENDPOINT);
+        url.search=new URLSearchParams({
+          q:rawQuery, bbox:'-0.63,51.25,0.42,51.74',
+          lat:String(LONDON_CENTER[0]), lon:String(LONDON_CENTER[1]),
+          lang:'en', limit:'15'
+        }).toString();
+        timeout=setTimeout(() => controller.abort(),9000);
+        const response=await fetch(url.toString(),{signal:controller.signal,mode:'cors'});
+        if (!response.ok) throw new Error('Place search HTTP '+response.status);
+        const data=await response.json();
+        if (!Array.isArray(data.features)) throw new Error('Unexpected place search data');
+        const unique=new Set();
+        results=data.features.map(feature => {
+          const [lon,lat]=feature.geometry?.coordinates || [];
+          const props=feature.properties || {};
+          if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+              !pointInPolygon(lat,lon,LONDON_POLYGON)) return null;
+          const name=String(props.name || props.street || props.district || '').trim();
+          if (!name) return null;
+          const key=normaliseArea(name)+':'+Math.round(lat*1000)+':'+Math.round(lon*1000);
+          if (unique.has(key)) return null;
+          unique.add(key);
+          const category=props.osm_key === 'place' ? 'AREA' :
+            props.osm_key === 'railway' ? 'STATION' :
+            props.osm_key === 'highway' ? 'STREET' : 'LANDMARK';
+          const nearby=String(props.district || props.city || props.county || '').trim();
+          return {name:name.slice(0,95),lat,lon,
+            zoom:props.osm_key === 'place' ? 13 : 16,
+            kind:(nearby && normaliseArea(nearby)!==normaliseArea(name)
+              ? nearby.slice(0,28)+' · ' : '')+category};
+        }).filter(Boolean).slice(0,8);
+        // In-memory only; avoid repeated network calls for the same query.
+        if (placeCache.size >= 30) placeCache.delete(placeCache.keys().next().value);
+        placeCache.set(searchKey,results);
+      }
+      if (controller !== areaLookupController ||
+          normaliseArea(areaSearch.value)!==searchKey) return;
+      showAreaMatches(results, 'No London place found — try another name');
+    } catch (error) {
+      if (controller !== areaLookupController) return;
+      if (error.name === 'AbortError') {
+        showAreaMatches([], 'Place search timed out — try again');
+      } else {
+        showAreaMatches([], 'Online place search unavailable — local search still works');
+      }
+    } finally {
+      clearTimeout(timeout);
+      if (areaLookupController===controller) areaLookupController=null;
+    }
   }
 
   areaSearch.addEventListener('input',renderAreaMatches);
@@ -760,6 +855,7 @@
   areaSearch.addEventListener('blur',() => setTimeout(closeAreaResults,180));
   areaSearch.addEventListener('keydown',event => {
     if (event.key === 'Escape') {
+      cancelAreaLookup();
       closeAreaResults();
       return;
     }
@@ -773,7 +869,8 @@
       selectArea(areaMatches[areaActive >= 0 ? areaActive : 0]);
     }
   });
-  // Clicking the suggestions does not submit a guess or change its pin.
+  // Pointerdown prevents the input blur from closing suggestions before
+  // touch and mouse users can select them. No guess is submitted here.
   areaResults.addEventListener('pointerdown',event => {
     const option = event.target.closest('[data-index]');
     if (!option) return;
@@ -788,13 +885,13 @@
     if (!areaSearchBox.contains(event.target)) closeAreaResults();
   });
   areaClear.addEventListener('click',() => {
+    cancelAreaLookup();
     areaSearch.value = '';
     areaClear.hidden = true;
+    areaCredit.hidden = true;
     closeAreaResults();
     areaSearch.focus();
   });
-
-
 
   function renderProgress() {
     $('progress-track').replaceChildren();
@@ -848,11 +945,15 @@
     $('selected-coords').innerHTML = '<span class="pin-small">●</span> NO PIN PLACED YET';
     $('submit-guess').disabled = true;
     $('year-guess').classList.toggle('hidden', settings.type !== 'both');
+    $('photo-caption-instruction').textContent = settings.type === 'both' ?
+      'Find the clues. Date the scene.' : 'Find the clues. Pin the location.';
     $('submit-guess').innerHTML = settings.type === 'both' ? 'LOCK IN WHERE + WHEN <span>→</span>' : 'LOCK IN LOCATION <span>→</span>';
     $('panel-foot').textContent = settings.type === 'both' ? 'The year is checked against the original photo date.' : 'Zoom in for a more precise location guess.';
     updateYear(MAX_YEAR);
+    cancelAreaLookup();
     areaSearch.value = '';
     areaClear.hidden = true;
+    areaCredit.hidden = true;
     closeAreaResults();
     resetPhotoZoom();
     renderProgress();
