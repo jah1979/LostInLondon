@@ -43,7 +43,7 @@ Then visit http://localhost:8000.
 
 ### Limitations of this first version
 
-- The **North of the River** and **South of the River** game modes filter candidate photo coordinates using a simplified, locally stored Thames centreline (including its Greenwich Peninsula bend). This is an approximate river-bank split rather than a surveyed boundary; a narrow strip directly on the estimated river line is excluded to avoid ambiguous bridge and water photographs. The gameplay needs no extra location API.
+- **North of the River / South of the River** use a local OS Open Rivers-derived Thames centreline produced by scripts/generate_thames.py from OS watercourse links. The source is generalised centreline data, NOT surveyed bank polygons, and a continuous line is map-matched to it with interpolated connections where necessary. Geotags within 50 metres of the estimated river line are excluded as ambiguous. The final image coordinates are checked, not merely the search neighbourhood. This is still an approximate side-of-river boundary near complex meanders and islands. Players make no extra GIS requests.
 
 - The London-area search is an **offline shortlist** of boroughs and well-known neighbourhoods (with approximate centres), not a complete address or landmark geocoder. Selecting a search result moves the map without placing the player's pin. No API keys or extra network calls are required.
 
@@ -64,4 +64,6 @@ This static site is published with GitHub Pages from the root of the `main` bran
 
 
 ### Landing-page boundary attribution
-The decorative Greater London outline was simplified from Ordnance Survey Boundary-Line geometry distributed in [utisz/compound-cities](https://github.com/utisz/compound-cities/blob/master/greater-london.geo.json), under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Contains Ordnance Survey data © Crown copyright and database right. The Thames path and Tube-inspired lines are illustrative, not authoritative GIS layers or official Transport for London route maps.
+The decorative Greater London outline was simplified from Ordnance Survey Boundary-Line geometry distributed in [utisz/compound-cities](https://github.com/utisz/compound-cities/blob/master/greater-london.geo.json), under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Contains Ordnance Survey data © Crown copyright and database right. The landing-page Thames artwork and Tube-inspired lines are illustrative, not official GIS layers or official Transport for London route maps.
+
+**Game-mode river source:** Coordinates in thames-geometry.js derive from Ordnance Survey OS Open Rivers data, © Crown copyright and database right 2026, used under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). [Ordnance Survey](https://www.ordnancesurvey.co.uk/products/os-open-rivers) describes the product as a generalised watercourse centreline. The extraction script and GitHub Actions workflow periodically regenerate a local copy, so gameplay requires no external river API.
