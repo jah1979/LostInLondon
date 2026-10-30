@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/thames-geometry.yml'
+      - 'scripts/generate_thames.py'
   schedule:
     - cron: '0 8 1 5,11 *'
 permissions:
