@@ -76,11 +76,11 @@ def main():
         return [round(max(51.30,min(51.65,y)),6),to_x]
     coords=[edge(-0.70,True),*coords,edge(0.70,False)]
     js=(
-        "/* Ordnance Survey OS Open Rivers (generalised centreline), OGL v3.\\n"
-        " * Contains OS data © Crown copyright and database right 2026.\\n"
-        " * Generated from ArcGIS OS_OpenRivers service; see scripts/generate_thames.py.\\n"
-        " */\\n"
-        "window.LONDON_THAMES_OS_CENTRELINE = "+json.dumps(coords,separators=(",",":"))+";\\n"
+        "/* Ordnance Survey OS Open Rivers (generalised centreline), OGL v3.\n"
+        " * Contains OS data © Crown copyright and database right 2026.\n"
+        " * Generated from ArcGIS OS_OpenRivers service; see scripts/generate_thames.py.\n"
+        " */\n"
+        "window.LONDON_THAMES_OS_CENTRELINE = "+json.dumps(coords,separators=(",",":"))+";\n"
     )
     Path("thames-geometry.js").write_text(js,encoding="utf-8")
     print(f"Generated {len(coords)} positions, {len(features)} segments, longitude {lo}..{hi}")
