@@ -286,3 +286,29 @@
     font-weight:800;letter-spacing:.8px;margin-top:3px
   }
 }
+
+/* BETA 0.14 — on-demand search for lesser-known London landmarks */
+.area-search-option.area-search-more {
+  background:#21384a;border-top:1px solid #4e6873;
+  color:#b8f05a;gap:10px;
+}
+.area-search-option.area-search-more strong {
+  font-size:11px;letter-spacing:.25px;line-height:1.35
+}
+.area-search-option.area-search-more span {
+  color:#bdd7af;white-space:nowrap;font-size:9px
+}
+.area-search-option.area-search-more:hover,
+.area-search-option.area-search-more.active {
+  background:#304d52;color:#e2ffb6
+}
+.area-search-credit {
+  display:block;margin:7px 0 0;color:#8ea6b9;
+  font-size:10px;line-height:1.4
+}
+.area-search-credit a {color:#c3d9e7;text-decoration:underline;text-underline-offset:2px}
+.area-search-credit[hidden]{display:none!important}
+@media(max-width:420px) {
+  .area-search-option.area-search-more {align-items:flex-start;flex-direction:column;gap:3px}
+  .area-search-option.area-search-more strong {font-size:10px}
+}
