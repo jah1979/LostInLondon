@@ -59,6 +59,16 @@ Then visit http://localhost:8000.
 
 **Additional place search attribution:** Landmark and place search is provided by [Photon (komoot)](https://photon.komoot.io/) using © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), under ODbL. Place search is separate from the Wikimedia Commons image metadata and Ordnance Survey river geometry. The public Photon endpoint is provided on a best-effort basis with fair-use limits.
 
+### Offline-first photo discovery (BETA 0.16)
+
+The game first checks `photo-catalog.js`, a **metadata-only index** of validated Wikimedia Commons photos. Photographs themselves remain on Wikimedia Commons, with their original creators and licences.
+
+The index is generated outside gameplay by `scripts/build_photo_catalog.py` and refreshed through `.github/workflows/refresh-photo-catalog.yml`. The workflow can run manually or weekly. The generator makes a modest number of sequential, identified Wikimedia API requests and replaces the catalogue only after minimum validation checks. It stores Commons IDs, coordinates, capture year where known, image URL, source, author, licence and licence link — never image files.
+
+For each round, cached and indexed records must still pass the selected game area's coordinates and, in Where + When mode, the original date test. Seen photos are excluded. If the catalogue is empty, exhausted or an image fails to load, the existing live Commons search remains available. Image downloads still depend on Wikimedia and the player's connection. The game does not mirror or proxy photos.
+
+**First build:** In GitHub, open **Actions → Refresh London photo catalogue → Run workflow** if the initial push has not triggered an automatic build. The initial version of `photo-catalog.js` contains zero photos until the generator succeeds. Do not assume the loading improvement is active before the index is populated.
+
 ## Code and photo licences
 
 The game code in this folder is released under MIT (see `LICENSE`). Photographs are **not** distributed with the code: they are served directly from Commons and retain their own independent licences and attribution requirements. OpenStreetMap data and Leaflet have separate terms and copyright notices.
