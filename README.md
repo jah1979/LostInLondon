@@ -7,7 +7,7 @@ A free, mobile-friendly London-only photo-geography game, inspired by location g
 1. Choose a hunting ground: **Greater London**, **Inner London** (roughly a 7 km radius), **North of the River**, or **South of the River**. North/South modes cover Greater London on the selected side of the Thames.
 2. Choose **Where + When** or **Where Only**, and 5 or 10 rounds.
 3. Optionally set a 90-second round timer.
-4. Inspect a real London photo, optionally search for a London borough or neighbourhood to move the guessing map there, place your own pin on the map, and estimate the photograph's year with the slider.
+4. Inspect a real London photo, optionally search for a London borough or neighbourhood to move the guessing map there, place your own pin on the map, and estimate the photograph's year with the slider. On mobile, pinch with two fingers to zoom (up to 4×) and drag to pan the zoomed photo; on desktop, use the mouse wheel or the +/− buttons.
 5. Reveal the actual location and year, with separate scores for both answers.
 6. Share your game link and your score with mates.
 
@@ -42,6 +42,8 @@ Then visit http://localhost:8000.
 - **OpenStreetMap:** Maps are rendered with Leaflet and OpenStreetMap data/tiles and retain the required copyright credit.
 
 ### Limitations of this first version
+
+- **First-photo speed:** Only after the player starts a game, the first round launches one Commons search and, if it is still slow, a staggered second search 650 ms later. The first fully validated image to finish loading wins, and the other request is cancelled. Later rounds retain the existing one-photo prefetch. Cold-start speed still depends on Wikimedia Commons availability and the player's network; there is no guaranteed load time.
 
 - **North of the River / South of the River** use a local OS Open Rivers-derived Thames centreline produced by scripts/generate_thames.py from OS watercourse links. The source is generalised centreline data, NOT surveyed bank polygons, and a continuous line is map-matched to it with interpolated connections where necessary. Geotags within 50 metres of the estimated river line are excluded as ambiguous. The final image coordinates are checked, not merely the search neighbourhood. This is still an approximate side-of-river boundary near complex meanders and islands. Players make no extra GIS requests.
 
