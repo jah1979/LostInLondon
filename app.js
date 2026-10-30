@@ -171,6 +171,8 @@
       }
       // Broken/stale thumbs should not hold up repeated game launches.
       cachedCandidates=cachedCandidates.filter(item => item.id !== candidate.id);
+      try { localStorage.setItem(PHOTO_CANDIDATE_KEY,JSON.stringify(cachedCandidates)); }
+      catch { /* Optional browser cache. */ }
     }
     return null;
   }
