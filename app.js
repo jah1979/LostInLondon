@@ -204,7 +204,13 @@
   // Approximate west-to-east Thames centreline, including its meander around
   // the Greenwich Peninsula. Derived as a simplified path for London game modes,
   // not a surveyed bank boundary. Remains fully offline.
-  const THAMES_CENTRELINE = [[51.43,-0.7],[51.43,-0.56],[51.42,-0.5],[51.408,-0.44],[51.407,-0.39],[51.418,-0.354],[51.433,-0.329],[51.446,-0.313],[51.464,-0.308],[51.472,-0.295],[51.482,-0.28],[51.491,-0.259],[51.491,-0.24],[51.49,-0.221],[51.486,-0.205],[51.481,-0.184],[51.482,-0.164],[51.486,-0.149],[51.5,-0.128],[51.504,-0.121],[51.509,-0.115],[51.509,-0.107],[51.508,-0.096],[51.506,-0.079],[51.504,-0.069],[51.504,-0.053],[51.497,-0.036],[51.488,-0.024],[51.486,-0.013],[51.487,-0.009],[51.495,-0.008],[51.505,-0.009],[51.51,0],[51.509,0.017],[51.505,0.027],[51.496,0.037],[51.492,0.07],[51.495,0.087],[51.501,0.109],[51.51,0.128],[51.511,0.148],[51.505,0.176],[51.497,0.2],[51.5,0.235],[51.51,0.265],[51.512,0.33],[51.52,0.7]];
+  const THAMES_CENTRELINE_FALLBACK = [[51.43,-0.7],[51.43,-0.56],[51.42,-0.5],[51.408,-0.44],[51.407,-0.39],[51.418,-0.354],[51.433,-0.329],[51.446,-0.313],[51.464,-0.308],[51.472,-0.295],[51.482,-0.28],[51.491,-0.259],[51.491,-0.24],[51.49,-0.221],[51.486,-0.205],[51.481,-0.184],[51.482,-0.164],[51.486,-0.149],[51.5,-0.128],[51.504,-0.121],[51.509,-0.115],[51.509,-0.107],[51.508,-0.096],[51.506,-0.079],[51.504,-0.069],[51.504,-0.053],[51.497,-0.036],[51.488,-0.024],[51.486,-0.013],[51.487,-0.009],[51.495,-0.008],[51.505,-0.009],[51.51,0],[51.509,0.017],[51.505,0.027],[51.496,0.037],[51.492,0.07],[51.495,0.087],[51.501,0.109],[51.51,0.128],[51.511,0.148],[51.505,0.176],[51.497,0.2],[51.5,0.235],[51.51,0.265],[51.512,0.33],[51.52,0.7]];
+  // Public OS Open Rivers derived resource, served locally with the game.
+  // Fail closed for river-specific modes when the asset is missing.
+  const hasOSRiverGeometry = Array.isArray(window.LONDON_THAMES_OS_CENTRELINE) &&
+    window.LONDON_THAMES_OS_CENTRELINE.length >= 150;
+  const THAMES_CENTRELINE = hasOSRiverGeometry
+    ? window.LONDON_THAMES_OS_CENTRELINE : THAMES_CENTRELINE_FALLBACK;
   const NORTH_OF_THAMES_POLYGON = [...THAMES_CENTRELINE,[52,0.7],[52,-0.7]];
 
   function distanceToThamesKm(lat, lon) {
@@ -803,6 +809,10 @@
   }
 
   function beginGame() {
+    if ((settings.area === 'north' || settings.area === 'south') && !hasOSRiverGeometry) {
+      toast('RIVER MAP DATA DID NOT LOAD — PLEASE REFRESH');
+      return;
+    }
     runToken++;
     stopTimer();
     roundIndex = 0;
