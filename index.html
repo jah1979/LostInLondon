@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://tile.openstreetmap.fr">
   <link rel="preconnect" href="https://upload.wikimedia.org">
   <link rel="stylesheet" href="vendor/leaflet.css?v=1.9.4">
-  <link rel="stylesheet" href="styles.css?v=20261029-11">
+  <link rel="stylesheet" href="styles.css?v=20261030-13">
 </head>
 <body>
   <div class="app-shell">
@@ -124,10 +124,10 @@
           <div class="photo-panel">
             <div class="photo-stage" id="photo-stage">
               <div class="photo-loading" id="photo-loading"><span class="loader-ring"></span><span>SEARCHING LONDON...</span><small>Finding a London photo with location and capture date</small></div>
-              <img id="location-photo" alt="A mystery location somewhere in London" draggable="false" hidden>
+              <img id="location-photo" alt="A mystery location somewhere in London" draggable="false" decoding="async" hidden>
               <div class="photo-error hidden" id="photo-error"><span>↻</span><strong>COULDN'T LOAD THAT CLUE</strong><button id="retry-photo" type="button" class="button button-outline">TRY ANOTHER LOCATION</button></div>
               <div class="photo-overlay-top"><span class="photo-counter"><span class="pulse"></span> LONDON PHOTO CLUE</span><span id="zoom-indicator">100%</span></div>
-              <div class="photo-overlay-bottom"><div><strong>LOOK CLOSER.</strong><span> Find the clues. Date the scene.</span></div><div class="zoom-controls"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><button type="button" id="zoom-in" aria-label="Zoom in">+</button></div></div>
+              <div class="photo-overlay-bottom"><div><strong>LOOK CLOSER.</strong><span> Find the clues. Date the scene.<span class="photo-mobile-tip">PINCH TO ZOOM · DRAG TO EXPLORE</span></span></div><div class="zoom-controls"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><button type="button" id="zoom-in" aria-label="Zoom in">+</button></div></div>
             </div>
             <div class="photo-credit" id="photo-credit">Photography: Wikimedia Commons contributors · <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">Source / credits ↗</a></div>
           </div>
@@ -170,11 +170,11 @@
         <div class="finish-detail"><div class="eyebrow"><span class="line"></span> EXPLORATION COMPLETE</div><div class="finish-symbol">◎</div><h1 id="finish-title">LONDON <em>LEGEND.</em></h1><p id="finish-desc">You've wandered all across the capital.</p><div class="final-score-label">YOUR FINAL SCORE</div><div class="final-score"><b id="final-points">21,800</b><span id="final-max">/ 25,000 PTS</span></div><p class="best-score" id="best-score"></p><div class="finish-actions"><button id="play-again" class="button button-main" type="button">PLAY AGAIN <span>↻</span></button><button id="share-result" class="button button-outline" type="button">SHARE YOUR SCORE ↗</button></div><div class="finish-note">CHALLENGE YOUR MATES. NO LOGIN, NO NONSENSE. EVERY PHOTO HAS A REAL DATE.</div></div>
       </section>
     </main>
-    <footer class="footer"><span>LOST IN LONDON <b>✳</b> BETA 0.12 · A COMMUNITY CITY GAME · BY CHRONOPHOBIAN · <a href="https://ko-fi.com/chr0n0ph0bian" target="_blank" rel="noopener noreferrer">SUPPORT 🍺</a></span><span>GEO-TAGGED PHOTOS + DATES: <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">WIKIMEDIA COMMONS</a> · MAP: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OPENSTREETMAP CONTRIBUTORS</a> · RIVER: <a href="https://www.ordnancesurvey.co.uk/products/os-open-rivers" target="_blank" rel="noopener noreferrer">OS OPEN RIVERS</a> · CONTAINS OS DATA © CROWN COPYRIGHT AND DATABASE RIGHT 2026 (<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener noreferrer">OGL v3</a>)</span></footer>
+    <footer class="footer"><span>LOST IN LONDON <b>✳</b> BETA 0.13 · A COMMUNITY CITY GAME · BY CHRONOPHOBIAN · <a href="https://ko-fi.com/chr0n0ph0bian" target="_blank" rel="noopener noreferrer">SUPPORT 🍺</a></span><span>GEO-TAGGED PHOTOS + DATES: <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener noreferrer">WIKIMEDIA COMMONS</a> · MAP: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OPENSTREETMAP CONTRIBUTORS</a> · RIVER: <a href="https://www.ordnancesurvey.co.uk/products/os-open-rivers" target="_blank" rel="noopener noreferrer">OS OPEN RIVERS</a> · CONTAINS OS DATA © CROWN COPYRIGHT AND DATABASE RIGHT 2026 (<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener noreferrer">OGL v3</a>)</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="thames-geometry.js?v=20261030-os1"></script>
-  <script src="app.js?v=20261030-12"></script>
+  <script src="app.js?v=20261030-13"></script>
 </body>
 </html>
