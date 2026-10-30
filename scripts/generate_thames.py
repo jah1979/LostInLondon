@@ -57,6 +57,8 @@ def main():
     merged=linemerge(unary_union(lines))
     routes=list(merged.geoms) if hasattr(merged,"geoms") else [merged]
     routes.sort(key=lambda line:line.length,reverse=True)
+    for i, g in enumerate(routes[:18]):
+        print(f'Component {i}: {len(g.coords)} vertices, lon {g.bounds[0]:.5f}..{g.bounds[2]:.5f}, lat {g.bounds[1]:.5f}..{g.bounds[3]:.5f}, length {g.length:.5f}',flush=True)
     river=routes[0]
     if not isinstance(river,LineString):
         raise ValueError("Missing continuous Thames centreline")
