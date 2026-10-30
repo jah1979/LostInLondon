@@ -773,7 +773,8 @@
       .sort((a,b) => a.rank-b.rank || a.item.name.localeCompare(b.item.name))
       .slice(0,6).map(match => match.item);
     if (query.length >= 3) {
-      localMatches.push({
+      // Keep the broader search discoverable without scrolling the list.
+      localMatches.splice(Math.min(3,localMatches.length),0,{
         action:'online',
         name:'SEARCH ALL LONDON FOR “'+areaSearch.value.trim().slice(0,65)+'”',
         kind:'PLACES + LANDMARKS'
