@@ -161,9 +161,11 @@
       !recentPhotos.slice(0,5).some(recent =>
         haversine(item.lat,item.lon,recent.lat,recent.lon) < 2)
     ));
-    for (const candidate of candidates.slice(0,3)) {
+    // Bound the cost of checking stale links: a failed cache must never
+    // delay the live search for many seconds.
+    for (const candidate of candidates.slice(0,2)) {
       if (token !== runToken) return null;
-      if (await imageLoads(candidate.url,token,null,3200)) {
+      if (await imageLoads(candidate.url,token,null,2500)) {
         usedPhotos.add(candidate.id);
         return candidate;
       }
