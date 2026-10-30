@@ -376,14 +376,19 @@
   }
 
 
-  function imageLoads(src, token) {
+  function imageLoads(src, token, signal=null) {
     return new Promise(resolve => {
       const image = new Image();
       let finished = false;
+      const onAbort = () => {
+        image.src = '';
+        finish(false);
+      };
       const finish = success => {
         if (finished) return;
         finished = true;
         clearTimeout(timeout);
+        signal?.removeEventListener('abort', onAbort);
         image.onload = null;
         image.onerror = null;
         resolve(success && token === runToken);
@@ -391,7 +396,11 @@
       const timeout = setTimeout(() => finish(false), 9000);
       image.onload = () => finish(true);
       image.onerror = () => finish(false);
-      image.src = src;
+      if (signal?.aborted) finish(false);
+      else {
+        signal?.addEventListener('abort', onAbort, {once:true});
+        image.src = src;
+      }
     });
   }
 
@@ -404,6 +413,48 @@
       if (await imageLoads(candidate.url, token)) return candidate;
     }
     return null;
+  }
+
+  // Hedge a slow first photo search only after 650 ms. Both attempts still
+  // validate Commons coordinates, original capture year, licence metadata and
+  // actual image loading. Abort the losing request as soon as one succeeds.
+  // This runs only after START EXPLORING, never on the landing page.
+  async function fastFirstPhoto(token) {
+    const seeds = shuffle(SEEDS.filter(seed =>
+      settings.area === 'central'
+        ? haversine(seed.lat,seed.lon,...LONDON_CENTER) < 6.5 && inPlayArea(seed.lat,seed.lon)
+        : inPlayArea(seed.lat,seed.lon)
+    )).slice(0, 2);
+    if (!seeds.length || token !== runToken) return null;
+    const controllers = seeds.map(() => new AbortController());
+    const attempts = seeds.map((seed,index) => (async () => {
+      const controller = controllers[index];
+      if (index) await new Promise(resolve => setTimeout(resolve, 650));
+      if (controller.signal.aborted || token !== runToken) throw new Error('Search cancelled');
+      const timeout = setTimeout(() => controller.abort(), 14500);
+      try {
+        const candidates = await fetchFromCommons(seed, controller.signal);
+        // Try up to three candidates without another pair of Commons API calls.
+        for (const item of candidates.slice(0,3)) {
+          if (controller.signal.aborted || token !== runToken) break;
+          if (usedPhotos.has(item.id) || hasSeenPhoto(item.id)) continue;
+          if (await imageLoads(item.url,token,controller.signal)) return item;
+        }
+        throw new Error('No first-photo candidate loaded');
+      } finally {
+        clearTimeout(timeout);
+      }
+    })());
+    try {
+      const ready = await Promise.any(attempts);
+      if (token !== runToken) return null;
+      usedPhotos.add(ready.id);
+      return ready;
+    } catch {
+      return null; // Preserve the existing more thorough fallback below.
+    } finally {
+      controllers.forEach(controller => controller.abort());
+    }
   }
 
   // Preload just one next photo while the user is thinking, not a whole
@@ -443,7 +494,10 @@
       prefetchedPhoto = null;
     }
     if (!candidate) {
-      candidate = await getReadyPhoto(token);
+      // Two staggered seed searches can reduce the slowest initial loads.
+      // Later rounds keep the existing single-photo prefetch pipeline.
+      if (roundIndex === 0) candidate = await fastFirstPhoto(token);
+      if (!candidate && token === runToken) candidate = await getReadyPhoto(token);
       if (token !== runToken) return;
     }
     if (candidate) {
@@ -776,6 +830,9 @@
     photoZoom = 1;
     panX = 0;
     panY = 0;
+    touchPinch = null;
+    touchDrag = null;
+    $('photo-stage').classList.remove('touch-zooming');
     drawPhotoTransform();
   }
 
@@ -905,6 +962,7 @@
   }
 
   let photoZoom = 1, panX = 0, panY = 0;
+  let touchPinch = null, touchDrag = null;
   function drawPhotoTransform() {
     userPhoto.style.transform = `translate(${panX}px,${panY}px) scale(${photoZoom})`;
     $('zoom-indicator').textContent = Math.round(photoZoom*100)+'%';
@@ -938,7 +996,9 @@
   const stage = $('photo-stage');
   let drag = null;
   stage.addEventListener('pointerdown',evt=>{
-    if (!sceneReady || photoZoom<=1 || evt.target.closest('button,a')) return;
+    // Touch gestures are handled separately so the page still scrolls
+    // normally with one finger when the photo is at 100%.
+    if (evt.pointerType === 'touch' || !sceneReady || photoZoom<=1 || evt.target.closest('button,a')) return;
     drag={id:evt.pointerId,x:evt.clientX,y:evt.clientY,ox:panX,oy:panY};
     stage.setPointerCapture(evt.pointerId);
     userPhoto.classList.add('grabbing');
@@ -952,6 +1012,72 @@
   ['pointerup','pointercancel','lostpointercapture'].forEach(type=>stage.addEventListener(type,()=>{
     drag=null;userPhoto.classList.remove('grabbing');
   }));
+  // Mobile: two-finger pinch zoom centred on the fingers, plus panning
+  // when zoomed. touch-action:pan-y allows ordinary page scrolling at 100%.
+  const touchMetrics = touches => {
+    const a=touches[0], b=touches[1];
+    return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2,
+      distance:Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY)};
+  };
+  const startTouchPinch = touches => {
+    const metrics=touchMetrics(touches);
+    touchPinch={...metrics,zoom:photoZoom,panX,panY};
+    touchDrag=null;
+    stage.classList.add('touch-zooming');
+  };
+  stage.addEventListener('touchstart',event => {
+    if (!sceneReady || event.target.closest('button,a')) return;
+    if (event.touches.length >= 2) startTouchPinch(event.touches);
+    else if (event.touches.length === 1 && photoZoom > 1) {
+      const touch=event.touches[0];
+      touchDrag={x:touch.clientX,y:touch.clientY,panX,panY};
+      stage.classList.add('touch-zooming');
+    }
+  },{passive:true});
+  stage.addEventListener('touchmove',event => {
+    if (!sceneReady) return;
+    if (event.touches.length >= 2) {
+      if (!touchPinch) startTouchPinch(event.touches);
+      if (touchPinch.distance < 4) return;
+      event.preventDefault();
+      const metrics=touchMetrics(event.touches);
+      const bounds=stage.getBoundingClientRect();
+      const ratio=clamp(touchPinch.zoom*metrics.distance/touchPinch.distance,1,4)/touchPinch.zoom;
+      photoZoom=touchPinch.zoom*ratio;
+      panX=metrics.x-bounds.left-bounds.width/2 -
+        (touchPinch.x-bounds.left-bounds.width/2-touchPinch.panX)*ratio;
+      panY=metrics.y-bounds.top-bounds.height/2 -
+        (touchPinch.y-bounds.top-bounds.height/2-touchPinch.panY)*ratio;
+      if (photoZoom <= 1.0001) { photoZoom=1;panX=0;panY=0; }
+      else {
+        panX=clamp(panX,-stage.clientWidth*(photoZoom-1)/2,stage.clientWidth*(photoZoom-1)/2);
+        panY=clamp(panY,-stage.clientHeight*(photoZoom-1)/2,stage.clientHeight*(photoZoom-1)/2);
+      }
+      drawPhotoTransform();
+    } else if (event.touches.length === 1 && touchDrag && photoZoom > 1) {
+      event.preventDefault();
+      const touch=event.touches[0];
+      panX=clamp(touchDrag.panX+touch.clientX-touchDrag.x,
+        -stage.clientWidth*(photoZoom-1)/2,stage.clientWidth*(photoZoom-1)/2);
+      panY=clamp(touchDrag.panY+touch.clientY-touchDrag.y,
+        -stage.clientHeight*(photoZoom-1)/2,stage.clientHeight*(photoZoom-1)/2);
+      drawPhotoTransform();
+    }
+  },{passive:false});
+  const finishTouchGesture = event => {
+    if (event.touches.length >= 2) startTouchPinch(event.touches);
+    else if (event.touches.length === 1 && photoZoom > 1) {
+      const touch=event.touches[0];
+      touchPinch=null;
+      touchDrag={x:touch.clientX,y:touch.clientY,panX,panY};
+    } else {
+      touchPinch=null;
+      touchDrag=null;
+      stage.classList.remove('touch-zooming');
+    }
+  };
+  stage.addEventListener('touchend',finishTouchGesture);
+  stage.addEventListener('touchcancel',finishTouchGesture);
   stage.addEventListener('wheel',evt=>{
     if (!sceneReady || !hasDesktopPointer() || evt.target.closest('button,a')) return;
     evt.preventDefault(); // Zoom the photo rather than scrolling the page.
