@@ -274,3 +274,15 @@
 @media(max-width:420px) {
   #mode-select button {font-size:9px;letter-spacing:.5px;padding:10px 6px}
 }
+
+
+/* BETA 0.13 — smooth finger-driven photo zoom; preserve page scroll at 100%. */
+.photo-stage.touch-zooming img {transition:none}
+.photo-stage img {-webkit-user-drag:none;-webkit-touch-callout:none}
+.photo-overlay-bottom .photo-mobile-tip {display:none}
+@media(max-width:760px) {
+  .photo-overlay-bottom .photo-mobile-tip {
+    display:block;color:var(--accent);font-size:10px;
+    font-weight:800;letter-spacing:.8px;margin-top:3px
+  }
+}
