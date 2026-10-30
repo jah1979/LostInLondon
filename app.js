@@ -16,6 +16,13 @@
   const API = 'https://commons.wikimedia.org/w/api.php';
   const PHOTO_HISTORY_KEY = 'lost-in-london:recent-photos:v1';
   const PHOTO_HISTORY_LIMIT = 150;
+  // Only browser-local copies of already validated Commons public metadata.
+  // No images are stored or re-licensed; expired/broken entries fall back
+  // to the live Commons API with the same location/date checks.
+  const PHOTO_CANDIDATE_KEY = 'lost-in-london:unseen-candidates:v1';
+  const PHOTO_CANDIDATE_LIMIT = 70;
+  const PHOTO_CANDIDATE_TTL = 14 * 24 * 60 * 60 * 1000;
+  const PHOTO_THUMB_WIDTH = window.matchMedia('(max-width:760px)').matches ? 960 : 1200;
   const LONDON_MAP_BOUNDS = [[51.25, -0.62], [51.74, 0.42]];
   const SEEDS = [
     {name:'Westminster',lat:51.5021,lon:-0.1261},
@@ -75,6 +82,7 @@
   let prefetchedPhoto = null, prefetchPromise = null;
   // Kept across games; persisted on this browser when storage is available.
   let recentPhotos = readPhotoHistory();
+  let cachedCandidates = readCandidateCache();
 
   const userPhoto = $('location-photo');
   const yearSlider = $('year-slider');
@@ -106,6 +114,65 @@
   function hasSeenPhoto(id) {
     return recentPhotos.some(p => p.id === id);
   }
+
+  function validCachedPhoto(item) {
+    return item && Number.isInteger(item.id) &&
+      Number.isFinite(item.lat) && Number.isFinite(item.lon) &&
+      (item.year === null || Number.isInteger(item.year) &&
+        item.year >= MIN_YEAR && item.year <= MAX_YEAR) &&
+      typeof item.url === 'string' && item.url.startsWith('https://upload.wikimedia.org/') &&
+      typeof item.source === 'string' && item.source.startsWith('https://commons.wikimedia.org/wiki/') &&
+      typeof item.author === 'string' && typeof item.license === 'string' &&
+      typeof item.licenseLink === 'string' &&
+      Number.isFinite(item.savedAt) && Date.now()-item.savedAt <= PHOTO_CANDIDATE_TTL;
+  }
+
+  function readCandidateCache() {
+    try {
+      const saved=JSON.parse(localStorage.getItem(PHOTO_CANDIDATE_KEY) || '[]');
+      return Array.isArray(saved) ? saved.filter(validCachedPhoto).slice(0,PHOTO_CANDIDATE_LIMIT) : [];
+    } catch { return []; }
+  }
+
+  function cacheValidatedCandidates(candidates) {
+    if (!candidates.length) return;
+    const now=Date.now(), unique=new Map();
+    candidates.forEach(candidate => {
+      if (candidate && Number.isInteger(candidate.id)) {
+        unique.set(candidate.id,{...candidate,savedAt:now});
+      }
+    });
+    cachedCandidates.forEach(candidate => {
+      if (validCachedPhoto(candidate) && !unique.has(candidate.id))
+        unique.set(candidate.id,candidate);
+    });
+    cachedCandidates=[...unique.values()].slice(0,PHOTO_CANDIDATE_LIMIT);
+    try { localStorage.setItem(PHOTO_CANDIDATE_KEY,JSON.stringify(cachedCandidates)); }
+    catch { /* Private browsing/blocked storage remains supported. */ }
+  }
+
+  async function cachedReadyPhoto(token) {
+    // Prefer geographically varied, unseen photos. A cached record is
+    // only eligible when it passes the CURRENT game area's boundary/date.
+    const candidates=shuffle(cachedCandidates.filter(item =>
+      validCachedPhoto(item) && inPlayArea(item.lat,item.lon) &&
+      (settings.type !== 'both' || item.year !== null) &&
+      !usedPhotos.has(item.id) && !hasSeenPhoto(item.id) &&
+      !recentPhotos.slice(0,5).some(recent =>
+        haversine(item.lat,item.lon,recent.lat,recent.lon) < 2)
+    ));
+    for (const candidate of candidates.slice(0,3)) {
+      if (token !== runToken) return null;
+      if (await imageLoads(candidate.url,token,null,3200)) {
+        usedPhotos.add(candidate.id);
+        return candidate;
+      }
+      // Broken/stale thumbs should not hold up repeated game launches.
+      cachedCandidates=cachedCandidates.filter(item => item.id !== candidate.id);
+    }
+    return null;
+  }
+
 
   function nearRecentPhoto(lat, lon) {
     // Only check the last 8 actual locations. Blocking hundreds of London
@@ -324,14 +391,42 @@
     const detailQuery = new URLSearchParams({
       ...base, pageids:shortlist.map(p=>p.pageid).join('|'),
       prop:'coordinates|imageinfo', coprop:'type|globe',
-      iiprop:'url|size|mime|extmetadata', iiurlwidth:'1200',
+      iiprop:'url|size|mime|extmetadata', iiurlwidth:String(PHOTO_THUMB_WIDTH),
       iiextmetadatafilter:'Artist|DateTimeOriginal|LicenseShortName|LicenseUrl'
     });
     const response = await fetch(API+'?'+detailQuery, {signal, mode:'cors'});
     if (!response.ok) throw new Error('Commons photo details HTTP '+response.status);
     const payload = await response.json();
     if (payload.error) throw new Error(payload.error.info||'Commons photo details error');
-    return shuffle((payload.query?.pages||[]).map(readCommonsPage).filter(Boolean));
+    const candidates=shuffle((payload.query?.pages||[]).map(readCommonsPage).filter(Boolean));
+    cacheValidatedCandidates(candidates);
+    return candidates;
+  }
+
+  // Faster first-shot discovery: one modest Commons generator query with
+  // already-filtered coordinates, year, image URL and licence metadata.
+  // On a miss, the existing two-request deeper search still runs.
+  async function fetchFastFromCommons(seed,signal) {
+    const searchPoint=jitteredSeed(seed);
+    const params=new URLSearchParams({
+      action:'query',format:'json',formatversion:'2',origin:'*',
+      generator:'geosearch',ggscoord:searchPoint.lat+'|'+searchPoint.lon,
+      ggsradius:settings.area === 'central' ? '4300' : '6000',
+      ggsnamespace:'6',ggsprimary:'all',ggslimit:'10',
+      prop:'coordinates|imageinfo',coprop:'type|globe',
+      iiprop:'url|size|mime|extmetadata',
+      iiurlwidth:String(PHOTO_THUMB_WIDTH),
+      iiextmetadatafilter:'Artist|DateTimeOriginal|LicenseShortName|LicenseUrl'
+    });
+    const response=await fetch(API+'?'+params,{signal,mode:'cors'});
+    if (!response.ok) throw new Error('Commons quick search HTTP '+response.status);
+    const payload=await response.json();
+    if (payload.error) throw new Error(payload.error.info||'Commons quick search error');
+    const candidates=shuffle((payload.query?.pages||[])
+      .filter(page => !usedPhotos.has(page.pageid) && !hasSeenPhoto(page.pageid))
+      .map(readCommonsPage).filter(Boolean));
+    cacheValidatedCandidates(candidates);
+    return candidates;
   }
 
   async function findCandidate(token) {
@@ -376,7 +471,7 @@
   }
 
 
-  function imageLoads(src, token, signal=null) {
+  function imageLoads(src, token, signal=null, timeoutMs=9000) {
     return new Promise(resolve => {
       const image = new Image();
       let finished = false;
@@ -393,7 +488,7 @@
         image.onerror = null;
         resolve(success && token === runToken);
       };
-      const timeout = setTimeout(() => finish(false), 9000);
+      const timeout = setTimeout(() => finish(false), timeoutMs);
       image.onload = () => finish(true);
       image.onerror = () => finish(false);
       if (signal?.aborted) finish(false);
@@ -404,7 +499,11 @@
     });
   }
 
-  async function getReadyPhoto(token) {
+  async function getReadyPhoto(token, useCache=true) {
+    if (useCache) {
+      const cached=await cachedReadyPhoto(token);
+      if (cached) return cached;
+    }
     for (let attempt=0; attempt<7; attempt++) {
       if (token !== runToken) return null;
       const candidate = await findCandidate(token);
@@ -434,7 +533,17 @@
       const timeout = setTimeout(() => controller.abort(), 14500);
       try {
         usedSeeds.add(seed.name);
-        const candidates = await fetchFromCommons(seed, controller.signal);
+        let candidates;
+        if (index === 0) {
+          // One HTTP call can be enough when its first 10 geotagged images
+          // include a photo with a trustworthy original capture date.
+          try { candidates=await fetchFastFromCommons(seed,controller.signal); }
+          catch (error) {
+            if (controller.signal.aborted) throw error;
+            candidates=[];
+          }
+        }
+        if (!candidates?.length) candidates=await fetchFromCommons(seed,controller.signal);
         // Try up to three candidates without another pair of Commons API calls.
         for (const item of candidates.slice(0,3)) {
           if (controller.signal.aborted || token !== runToken) break;
@@ -497,8 +606,11 @@
     if (!candidate) {
       // Two staggered seed searches can reduce the slowest initial loads.
       // Later rounds keep the existing single-photo prefetch pipeline.
-      if (roundIndex === 0) candidate = await fastFirstPhoto(token);
-      if (!candidate && token === runToken) candidate = await getReadyPhoto(token);
+      if (roundIndex === 0) {
+        candidate = await cachedReadyPhoto(token);
+        if (!candidate && token === runToken) candidate = await fastFirstPhoto(token);
+      }
+      if (!candidate && token === runToken) candidate = await getReadyPhoto(token,false);
       if (token !== runToken) return;
     }
     if (candidate) {
