@@ -381,8 +381,8 @@
       const image = new Image();
       let finished = false;
       const onAbort = () => {
-        image.src = '';
         finish(false);
+        image.removeAttribute('src');
       };
       const finish = success => {
         if (finished) return;
@@ -433,6 +433,7 @@
       if (controller.signal.aborted || token !== runToken) throw new Error('Search cancelled');
       const timeout = setTimeout(() => controller.abort(), 14500);
       try {
+        usedSeeds.add(seed.name);
         const candidates = await fetchFromCommons(seed, controller.signal);
         // Try up to three candidates without another pair of Commons API calls.
         for (const item of candidates.slice(0,3)) {
