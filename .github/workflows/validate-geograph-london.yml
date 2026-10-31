@@ -1,0 +1,37 @@
+name: Validate Geograph London coverage (read-only)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/validate-geograph-london.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geograph-coverage-pilot
+  cancel-in-progress: false
+
+jobs:
+  coverage:
+    name: Check sample metadata across Greater London
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate metadata and summarise coverage (no image downloads)
+        env:
+          GEOGRAPH_API_KEY: ${{ secrets.GEOGRAPH_API_KEY }}
+        run: python scripts/validate_geograph_london.py
+      - name: Upload anonymous quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geograph-london-metadata-report
+          path: geograph-pilot-report/
+          if-no-files-found: warn
+          retention-days: 14
