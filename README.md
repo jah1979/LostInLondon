@@ -69,6 +69,21 @@ For each round, cached and indexed records must still pass the selected game are
 
 **First build:** In GitHub, open **Actions → Refresh London photo catalogue → Run workflow** if the initial push has not triggered an automatic build. The initial version of `photo-catalog.js` contains zero photos until the generator succeeds. Do not assume the loading improvement is active before the index is populated.
 
+## Geograph API pilot (manual, secure)
+
+Geograph provides [official APIs](https://www.geograph.org.uk/help/api) for modest on-demand photo searches and [bulk metadata dumps](https://data.geograph.org.uk/dumps/) for larger indexing work. The manual pilot does **not** scrape pages, download photographs, or change the live game.
+
+To run the small two-location API smoke test:
+
+1. In GitHub, open **Settings → Secrets and variables → Actions → New repository secret**.
+2. Set the name to `GEOGRAPH_API_KEY` and paste your personal Geograph API key into GitHub's secret-value field. **Never commit the key** to `app.js`, `index.html`, the README, or `photo-catalog.js`.
+3. Open **Actions → Test Geograph API (small-scale pilot) → Run workflow → main**.
+4. Check the job log for the HTTP response status, metadata field names and number of returned entries. The logs deliberately omit the key, any query URL containing it, and response values.
+
+Source: `scripts/test_geograph_api.py`. Workflow: `.github/workflows/test-geograph-api.yml`. It tests two London centres with a maximum of five entries per query and makes no automatic scheduled calls.
+
+**Important:** This confirms only whether small-scale Geograph metadata queries are working. It does *not* authorise hotlinking or copying Geograph photographs into the game. Before serving photographs, obtain approval for image delivery/hosting and maintain per-photo photographer attribution, source links and CC BY-SA 2.0 licensing. Geograph's official bulk dataset is preferred for a sizeable London catalogue.
+
 ## Code and photo licences
 
 The game code in this folder is released under MIT (see `LICENSE`). Photographs are **not** distributed with the code: they are served directly from Commons and retain their own independent licences and attribution requirements. OpenStreetMap data and Leaflet have separate terms and copyright notices.
