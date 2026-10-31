@@ -1,0 +1,30 @@
+name: Test Geograph API (small-scale pilot)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  geograph-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check private Geograph API key is configured
+        shell: bash
+        env:
+          GEOGRAPH_API_KEY: ${{ secrets.GEOGRAPH_API_KEY }}
+        run: |
+          if [ -z "$GEOGRAPH_API_KEY" ]; then
+            echo "::error::Add GEOGRAPH_API_KEY in repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+      - name: Test two low-volume London location searches
+        env:
+          GEOGRAPH_API_KEY: ${{ secrets.GEOGRAPH_API_KEY }}
+        run: python scripts/test_geograph_api.py
