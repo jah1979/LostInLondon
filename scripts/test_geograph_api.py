@@ -36,10 +36,13 @@ def summarise(name, payload):
             if isinstance(value, dict):
                 entries = [value]
                 break
-        if not entries and isinstance(payload.get("channel"), dict):
-            channel = payload["channel"]
-            value = channel.get("item") or channel.get("items")
-            entries = value if isinstance(value, list) else [value] if isinstance(value, dict) else []
+        if not entries:
+            channel = payload.get("channel")
+            if not isinstance(channel, dict) and isinstance(payload.get("rss"), dict):
+                channel = payload["rss"].get("channel")
+            if isinstance(channel, dict):
+                value = channel.get("item") or channel.get("items")
+                entries = value if isinstance(value, list) else [value] if isinstance(value, dict) else []
         print(f"{name}: {len(entries)} recognisable item(s)")
     else:
         raise ValueError("Unsupported JSON response type")
