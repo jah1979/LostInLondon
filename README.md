@@ -84,6 +84,20 @@ Source: `scripts/test_geograph_api.py`. Workflow: `.github/workflows/test-geogra
 
 **Important:** This confirms only whether small-scale Geograph metadata queries are working. It does *not* authorise hotlinking or copying Geograph photographs into the game. Before serving photographs, obtain approval for image delivery/hosting and maintain per-photo photographer attribution, source links and CC BY-SA 2.0 licensing. Geograph's official bulk dataset is preferred for a sizeable London catalogue.
 
+## Geograph Greater London quality pilot (read-only)
+
+The approved small-scale API key has passed two smoke tests (Central London and South London). The **next stage** is a **12-centre, manually repeatable metadata audit** spanning inner and outer Greater London. It is deliberately not an exhaustive 33-borough survey or bulk collection: use [Geograph's official data dumps](https://data.geograph.org.uk/dumps/) for that.
+
+- Workflow: `.github/workflows/validate-geograph-london.yml` (**Actions → Validate Geograph London coverage (read-only)**).
+- Script: `scripts/validate_geograph_london.py`. It uses the existing private `GEOGRAPH_API_KEY` Actions secret. It runs automatically once when the workflow is introduced and can subsequently be invoked manually.
+- Request limits: twelve distinct sample centres, at most six results per location, two seconds between queries. No page scraping, photograph downloads, API keys in logs, or repeated scheduled calls.
+- Output: job-step summary plus a 14-day `geograph-london-metadata-report` artifact with aggregate counts by sampled area, distinct-record coordinate/date/credit/licence checks, and approximate London-envelope matches.
+- Date validity is based on the **`imageTaken` capture date**, never submission date. Missing dates are potentially fine for **Where Only**, not **Where + When**.
+- **Coordinate precision is not yet validated**: Geograph coordinates can represent a 1 km grid-square centre rather than an exact camera position. The existing game's London guide polygon is a simplified approximation; the audit is a screening tool, not a substitute for official boundaries or camera-position quality flags.
+- A returned licence name and thumbnail URL do not prove permission to hotlink or rehost a photo. Before integration, clarify image delivery/hosting rights with Geograph, preserve individual photographer credits and comply with the photo's actual CC licence.
+
+The pilot is isolated from production: `app.js`, `index.html`, existing Wikimedia discovery, and scoring are unchanged.
+
 ## Code and photo licences
 
 The game code in this folder is released under MIT (see `LICENSE`). Photographs are **not** distributed with the code: they are served directly from Commons and retain their own independent licences and attribution requirements. OpenStreetMap data and Leaflet have separate terms and copyright notices.
