@@ -1,0 +1,32 @@
+name: Geograph geographically balanced visual-review pilot
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/visual-review-pilot.yml'
+permissions:
+  contents: read
+concurrency:
+  group: geograph-visual-review-pilot
+  cancel-in-progress: false
+jobs:
+  create-review-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Sample all 33 reference centres and download approved small previews
+        env:
+          GEOGRAPH_API_KEY: ${{ secrets.GEOGRAPH_API_KEY }}
+        run: python scripts/build_geograph_visual_review.py
+      - name: Upload private review candidates and offline thumbs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geograph-london-visual-review
+          path: geograph-spread-review/
+          retention-days: 14
+          if-no-files-found: warn
