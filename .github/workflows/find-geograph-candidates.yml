@@ -1,0 +1,36 @@
+name: Find Geograph photo candidates for London review
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/find-geograph-candidates.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geograph-review-candidates
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect limited Geograph metadata sample (no photos)
+        env:
+          GEOGRAPH_API_KEY: ${{ secrets.GEOGRAPH_API_KEY }}
+        run: python scripts/find_geograph_candidates.py
+      - name: Upload real candidate register for local review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: london-geograph-photo-candidates
+          path: geograph-candidate-review/
+          if-no-files-found: warn
+          retention-days: 14
